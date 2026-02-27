@@ -12,6 +12,8 @@ source/
 
 sqlite_case
 
+lmdb_case
+
 # ---- Generated diff outputs ----
 output_*.diff
 art_files*.diff

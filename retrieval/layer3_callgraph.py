@@ -91,7 +91,7 @@ def format_candidates_for_prompt(
 
     Output format (one function per line):
         storage/heap.c:234  heap_insert(HeapFile*, Tuple*)
-          → 向堆文件写入元组；storage 子系统；被 exec_insert 调用；涉及 WAL
+          -> writes a tuple into the heap file; storage subsystem; called by exec_insert; involves WAL
     """
     lines = []
     for func_name in candidate_funcs[:max_entries]:
@@ -114,17 +114,17 @@ def format_candidates_for_prompt(
         if summary:
             detail_parts.append(summary)
         if subsystem:
-            detail_parts.append(f"{subsystem} 子系统")
+            detail_parts.append(f"{subsystem} subsystem")
         if scenario:
             detail_parts.append(scenario)
 
-        detail = "；".join(detail_parts)
+        detail = "; ".join(detail_parts)
 
         lines.append(f"{file_loc:<35}  {sig}")
         if detail:
             lines.append(f"  → {detail}")
 
     if len(candidate_funcs) > max_entries:
-        lines.append(f"  ... (共 {len(candidate_funcs)} 个候选，仅显示前 {max_entries} 个)")
+        lines.append(f"  ... ({len(candidate_funcs)} candidates total, showing top {max_entries})")
 
     return "\n".join(lines)

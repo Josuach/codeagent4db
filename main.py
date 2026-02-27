@@ -62,6 +62,7 @@ from retrieval.layer3_callgraph import expand_with_callgraph, format_candidates_
 
 from agent.planner import plan_feature
 from agent.implementer import implement_feature, integrate_interfaces
+from agent.checker import compile_check_and_fix
 
 
 # ---------------------------------------------------------------------------
@@ -70,8 +71,6 @@ from agent.implementer import implement_feature, integrate_interfaces
 
 _AGENT_DIR = os.path.dirname(__file__)
 DEFAULT_CACHE_DIR = os.path.join(_AGENT_DIR, "cache")
-CALLCHAIN_ENTRIES = os.path.join(_AGENT_DIR, "callchain_entries.yaml")
-PROJECT_OVERVIEW = os.path.join(_AGENT_DIR, "project_overview.md")
 
 
 def _cache_paths(cache_dir: str) -> dict:
@@ -92,11 +91,14 @@ def _cache_paths(cache_dir: str) -> dict:
 def cmd_preprocess(args, client: LLMClient):
     project_root = os.path.abspath(args.project)
     cache_dir = os.path.abspath(args.cache_dir)
+    config_dir = os.path.abspath(args.config_dir)
+    callchain_entries = os.path.join(config_dir, "callchain_entries.yaml")
     os.makedirs(cache_dir, exist_ok=True)
     paths = _cache_paths(cache_dir)
 
     print(f"[main] preprocessing project: {project_root}")
     print(f"[main] cache directory: {cache_dir}")
+    print(f"[main] config directory: {config_dir}")
 
     # --- Step 1: Parse C source files ---
     if args.incremental:
@@ -117,13 +119,13 @@ def cmd_preprocess(args, client: LLMClient):
     print("[main] building call graph ...")
     call_graph = build_call_graph(file_map)
 
-    if os.path.exists(CALLCHAIN_ENTRIES):
-        entries = load_entries_config(CALLCHAIN_ENTRIES)
+    if os.path.exists(callchain_entries):
+        entries = load_entries_config(callchain_entries)
         print(f"[main] building call chains for {len(entries)} entry points ...")
         chains = build_all_callchains(entries, call_graph)
         save_callchains(chains, paths["callchains"])
     else:
-        print(f"[warn] {CALLCHAIN_ENTRIES} not found, skipping call chain build")
+        print(f"[warn] {callchain_entries} not found, skipping call chain build")
         chains = {}
 
     # --- Step 3: LLM batch function summarization ---
@@ -197,11 +199,14 @@ def cmd_preprocess(args, client: LLMClient):
 def cmd_generate(args, client: LLMClient):
     project_root = os.path.abspath(args.project)
     cache_dir = os.path.abspath(args.cache_dir)
+    config_dir = os.path.abspath(args.config_dir)
+    project_overview_path = os.path.join(config_dir, "project_overview.md")
     paths = _cache_paths(cache_dir)
     feature_desc = args.feature
 
     print(f"[main] feature: {feature_desc}")
     print(f"[main] cache directory: {cache_dir}")
+    print(f"[main] config directory: {config_dir}")
 
     # Load cache artifacts
     func_index = load_index(paths["function_index"])
@@ -220,8 +225,8 @@ def cmd_generate(args, client: LLMClient):
         callchains_text = format_callchains_for_prompt(chains)
 
     project_overview = ""
-    if os.path.exists(PROJECT_OVERVIEW):
-        with open(PROJECT_OVERVIEW, "r", encoding="utf-8") as f:
+    if os.path.exists(project_overview_path):
+        with open(project_overview_path, "r", encoding="utf-8") as f:
             project_overview = f.read()
 
     # Build reverse call graph from function index
@@ -279,6 +284,8 @@ def cmd_generate(args, client: LLMClient):
     # --- Output ---
     if args.output:
         output_path = args.output
+    elif args.diff_name:
+        output_path = os.path.join(cache_dir, f"{args.diff_name}.diff")
     else:
         safe_name = feature_desc[:20].replace(" ", "_").replace("/", "_")
         output_path = os.path.join(cache_dir, f"output_{safe_name}.diff")
@@ -287,11 +294,28 @@ def cmd_generate(args, client: LLMClient):
     if diff_headers:
         full_diff = full_diff + "\n\n" + diff_headers
 
+    # --- Optional compile check ---
+    if getattr(args, "compile_check", False):
+        print("\n[checker] Running compile check ...")
+        full_diff, compile_ok, compile_log = compile_check_and_fix(
+            diff_text=full_diff,
+            plan=plan,
+            project_root=project_root,
+            compile_cmd=getattr(args, "compile_cmd", ""),
+            client=client,
+            model=args.model,
+        )
+        print(compile_log)
+        if compile_ok:
+            print("[checker] ✓ Compile check passed.")
+        else:
+            print("[checker] ✗ Compile check failed (diff may still have issues).")
+
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(full_diff)
 
     print(f"\n[main] Done. Diff written to: {output_path}")
-    print(f"       Apply with: patch -p1 < {output_path}")
+    print(f"       Apply with: patch -p1 --fuzz=5 < {output_path}")
 
     # Also print plan summary
     print("\n=== Implementation Plan ===")
@@ -351,6 +375,10 @@ def main():
                       help="Functions per LLM batch (default: 40)")
     prep.add_argument("--summarizer-model", default="",
                       help="Model for preprocessing (default: provider's summarizer default)")
+    prep.add_argument(
+        "--config-dir", default=_AGENT_DIR,
+        help="Directory containing callchain_entries.yaml and project_overview.md (default: codeagent root)",
+    )
 
     # --- generate command ---
     gen = sub.add_parser("generate", help="Generate code changes for a feature")
@@ -365,8 +393,19 @@ def main():
     )
     gen.add_argument("--output", default=None,
                      help="Output diff file path (default: <cache-dir>/output_<feature>.diff)")
+    gen.add_argument("--diff-name", default=None,
+                     help="Short name for the output diff (saved as <cache-dir>/<name>.diff); ignored if --output is set")
     gen.add_argument("--model", default="",
                      help="Model for planning and implementation (default: provider's main default)")
+    gen.add_argument(
+        "--config-dir", default=_AGENT_DIR,
+        help="Directory containing project_overview.md (default: codeagent root)",
+    )
+    gen.add_argument("--compile-check", action="store_true",
+                     help="After generating diff, apply it to a temp copy and compile to verify correctness")
+    gen.add_argument("--compile-cmd", default="",
+                     help="Compile command to run for --compile-check (e.g. 'gcc -c mdb.c', 'make'); "
+                          "if empty, tries 'make' then falls back to compiling .c files with gcc")
 
     args = parser.parse_args()
 

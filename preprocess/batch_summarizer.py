@@ -12,10 +12,11 @@ Usage:
 
 import json
 import os
-import re
 import time
 from dataclasses import asdict
+from datetime import timedelta
 from typing import Optional
+import re
 
 from llm.client import LLMClient
 
@@ -69,7 +70,7 @@ def _format_function_block(
 
     caller_note = ""
     if callers:
-        caller_note = f"\n// 已知调用者: {', '.join(callers[:5])}"
+        caller_note = f"\n// Known callers: {', '.join(callers[:5])}"
 
     comment_block = ""
     if func.comment:
@@ -245,9 +246,9 @@ def build_file_index(
                 summary_fragments.append(fi["summary"])
 
         # Use the first few function summaries as a file description
-        description = "；".join(summary_fragments[:5])
+        description = "; ".join(summary_fragments[:5])
         if len(summary_fragments) > 5:
-            description += f"（共 {len(funcs)} 个函数）"
+            description += f" ({len(funcs)} functions total)"
 
         file_index[file_path] = {
             "subsystems": sorted(subsystems),

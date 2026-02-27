@@ -12,38 +12,58 @@ Usage:
 
 import json
 import os
-import re
 from typing import Optional
 
 from llm.client import LLMClient
 
-SYSTEM_PROMPT = """你是数据库系统架构专家，熟悉 PostgreSQL、MySQL、TiDB 等数据库的代码组织方式。"""
+SUBSYSTEM_SCHEMA_NAME = "subsystem_map"
 
-MAPPING_PROMPT_TEMPLATE = """以下是一个 C 语言数据库项目的目录结构。
-请为每个非空目录生成语义标签，用于构建代码检索的子系统索引。
+SUBSYSTEM_JSON_SCHEMA = {
+    "type": "object",
+    "description": "Map of directory path (forward slashes, no trailing slash) to its subsystem metadata",
+    "additionalProperties": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Human-readable subsystem name",
+            },
+            "description": {
+                "type": "string",
+                "description": "What this subsystem is responsible for",
+            },
+            "keywords": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Search keywords in both English and Chinese; include synonyms",
+            },
+        },
+        "required": ["name", "description", "keywords"],
+    },
+}
 
-目录结构：
+SYSTEM_PROMPT = """\
+You are a database systems architecture expert, familiar with the code organization of PostgreSQL, MySQL, TiDB, and similar databases."""
+
+MAPPING_PROMPT_TEMPLATE = """\
+Below is the directory structure of a C database project.
+For each non-empty directory, generate semantic labels to build a subsystem index for code retrieval.
+
+Directory structure:
 {dir_tree}
 
-输出格式（严格 JSON，key 为目录路径，路径使用正斜杠分隔）：
-{{
-  "src/storage": {{
-    "name": "存储引擎",
-    "description": "负责磁盘页面读写、堆文件管理、空闲空间追踪",
-    "keywords": ["存储", "堆文件", "页面", "缓冲", "storage", "heap", "page", "buffer", "fsm"]
-  }},
-  "src/optimizer": {{
-    "name": "查询优化器",
-    "description": "将逻辑查询计划转换为最优物理执行计划，包含代价估算和连接顺序选择",
-    "keywords": ["优化", "代价", "连接", "索引选择", "optimizer", "cost", "join", "plan", "Columbia"]
-  }},
-  ...
-}}
+Guidelines:
+- keywords must include synonyms in both English and Chinese so developers can search in either language
+- Use medium granularity: too fine (one entry per file) or too coarse (one entry for all of src/) both reduce retrieval quality
+- If a directory name is already self-explanatory (e.g. executor/), keywords should capture multiple ways to express its function
+- Use forward slashes in directory paths, no trailing slash
+- Example of a good entry for a storage directory:
+    name: "Storage Engine"
+    description: "Handles disk page read/write, heap file management, and free space tracking"
+    keywords: ["storage", "heap", "page", "buffer", "fsm", "disk", "block", "存储", "堆文件", "页面"]
 
-注意：
-- keywords 要包含中英文同义词（开发者可能用中文或英文描述需求）
-- 粒度适中：太细（每个文件一个条目）或太粗（整个 src 一个条目）都会降低检索效果
-- 若目录名已经很清晰（如 executor/），keywords 要包含其功能的多种表述"""
+Return the result as a JSON object mapping each directory path to its subsystem metadata.
+"""
 
 
 def _collect_dir_tree(root: str, max_depth: int = 4, extensions: tuple = (".c", ".h")) -> str:
@@ -81,21 +101,6 @@ def _collect_dir_tree(root: str, max_depth: int = 4, extensions: tuple = (".c", 
     return "\n".join(lines)
 
 
-def _parse_llm_json(text: str) -> dict:
-    text = text.strip()
-    text = re.sub(r'^```(?:json)?\s*', '', text)
-    text = re.sub(r'\s*```$', '', text)
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        match = re.search(r'\{.*\}', text, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group())
-            except json.JSONDecodeError:
-                pass
-    return {}
-
 
 def generate_subsystem_map(
     project_root: str,
@@ -112,12 +117,17 @@ def generate_subsystem_map(
 
     prompt = MAPPING_PROMPT_TEMPLATE.format(dir_tree=dir_tree)
 
-    raw = client.chat(model=model, system=SYSTEM_PROMPT, user=prompt, max_tokens=4096)
-    parsed = _parse_llm_json(raw)
+    parsed = client.chat_structured(
+        model=model,
+        system=SYSTEM_PROMPT,
+        user=prompt,
+        max_tokens=4096,
+        schema_name=SUBSYSTEM_SCHEMA_NAME,
+        json_schema=SUBSYSTEM_JSON_SCHEMA,
+    )
 
     if not parsed:
-        print("[warn] subsystem map LLM response could not be parsed as JSON")
-        print("Raw response:", raw[:500])
+        print("[warn] subsystem map structured output returned empty dict")
 
     # Normalize paths: ensure forward slashes, strip trailing slash
     normalized = {}

@@ -30,6 +30,7 @@ Usage:
     )
 """
 
+import json
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -122,6 +123,48 @@ class LLMClient:
     # Helper: default model names for this provider
     # ------------------------------------------------------------------
 
+    def chat_structured(
+        self,
+        model: str,
+        system: str,
+        user: str,
+        max_tokens: int,
+        schema_name: str,
+        json_schema: dict,
+    ) -> dict:
+        """
+        Send a single-turn chat request and return the assistant response as a
+        parsed dict, using provider-native structured output.
+
+        For Anthropic: uses the tools API with tool_choice forced to schema_name,
+        guaranteeing valid JSON that conforms to json_schema.
+        For OpenAI-compatible: uses response_format={"type": "json_object"} and
+        json.loads() on the result (schema is enforced by the prompt, not the API).
+
+        Args:
+            model:       Model identifier (provider-specific).
+            system:      System prompt.
+            user:        User message.
+            max_tokens:  Maximum tokens in the response.
+            schema_name: Tool name used for Anthropic tool_choice forcing.
+            json_schema: JSON Schema dict describing the expected output shape.
+
+        Returns:
+            Parsed dict. Returns {} on any extraction or parse failure.
+        """
+        if self.provider == "anthropic":
+            return self._chat_structured_anthropic(
+                model, system, user, max_tokens, schema_name, json_schema
+            )
+        else:
+            return self._chat_structured_openai_compatible(
+                model, system, user, max_tokens, schema_name, json_schema
+            )
+
+    # ------------------------------------------------------------------
+    # Helper: default model names for this provider
+    # ------------------------------------------------------------------
+
     def default_model(self, role: str = "main") -> str:
         """
         Return the default model name for this provider.
@@ -155,6 +198,59 @@ class LLMClient:
             ],
         )
         return response.choices[0].message.content
+
+    def _chat_structured_anthropic(
+        self,
+        model: str,
+        system: str,
+        user: str,
+        max_tokens: int,
+        schema_name: str,
+        json_schema: dict,
+    ) -> dict:
+        """Anthropic tools-API structured output — block.input is already a dict."""
+        tool_def = {
+            "name": schema_name,
+            "description": f"Structured output: {schema_name}",
+            "input_schema": json_schema,
+        }
+        response = self._backend.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            system=system,
+            tools=[tool_def],
+            tool_choice={"type": "tool", "name": schema_name},
+            messages=[{"role": "user", "content": user}],
+        )
+        for block in response.content:
+            if block.type == "tool_use":
+                return block.input  # already a Python dict
+        return {}
+
+    def _chat_structured_openai_compatible(
+        self,
+        model: str,
+        system: str,
+        user: str,
+        max_tokens: int,
+        schema_name: str,
+        json_schema: dict,
+    ) -> dict:
+        """OpenAI-compatible structured output via json_object response_format."""
+        response = self._backend.chat.completions.create(
+            model=model,
+            max_tokens=max_tokens,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        )
+        raw = response.choices[0].message.content
+        try:
+            return json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return {}
 
 
 # ------------------------------------------------------------------
