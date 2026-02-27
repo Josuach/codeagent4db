@@ -1,0 +1,37 @@
+# ---- API Keys ----
+.env
+*.env
+
+.claude
+
+# ---- Generated preprocessing cache (large JSON files, rebuilt by preprocess) ----
+cache/
+
+# ---- Target project source code (not part of codeagent itself) ----
+source/
+
+sqlite_case
+
+# ---- Generated diff outputs ----
+output_*.diff
+art_files*.diff
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# ---- Editor / OS ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
