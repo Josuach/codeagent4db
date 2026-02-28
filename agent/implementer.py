@@ -45,6 +45,9 @@ USER_PROMPT_IMPL_TEMPLATE = """\
 ## 实现计划
 {implementation_plan}
 
+## 相关结构体 / 联合体 / 枚举定义
+{structs_content}
+
 ## 受影响文件的完整内容
 {files_content}
 
@@ -155,12 +158,51 @@ def _format_files_block(files: list[tuple[str, str]]) -> str:
     return "\n\n".join(parts)
 
 
+def _build_structs_block(plan: dict, struct_index: Optional[dict]) -> str:
+    """
+    Build a formatted block of struct/union/enum definitions for the prompt.
+
+    Uses two sources of struct names:
+      1. plan["relevant_structs"] — as selected by the planner
+      2. Struct names that appear as whole-word tokens in the implementation_plan text
+         (catches structs the planner knew about but didn't list explicitly)
+    """
+    if not struct_index:
+        return ""
+
+    import re as _re
+
+    # Gather names from the plan
+    names: list = list(plan.get("relevant_structs", []))
+
+    # Supplement with names found in the implementation_plan text
+    plan_text = plan.get("implementation_plan", "")
+    for name in struct_index:
+        if name not in names and _re.search(r'\b' + _re.escape(name) + r'\b', plan_text):
+            names.append(name)
+
+    if not names:
+        return ""
+
+    parts = []
+    for name in names:
+        info = struct_index.get(name)
+        if not info:
+            continue
+        parts.append(
+            f"/* {info['kind']} {name}  ({info['file']}:{info['start_line']}) */\n"
+            f"{info['body']}"
+        )
+    return "\n\n".join(parts)
+
+
 def implement_feature(
     plan: dict,
     project_root: str,
     client: LLMClient,
     model: str = "",
     function_index: Optional[dict] = None,
+    struct_index: Optional[dict] = None,
 ) -> str:
     """
     Call 2: Generate unified diffs for all affected source files.
@@ -208,8 +250,12 @@ def implement_feature(
     ]
     files_block = _format_files_block(files_content)
 
+    # Build struct definitions block
+    structs_block = _build_structs_block(plan, struct_index)
+
     user_msg = USER_PROMPT_IMPL_TEMPLATE.format(
         implementation_plan=plan.get("implementation_plan", ""),
+        structs_content=structs_block or "(none)",
         files_content=files_block,
     )
 

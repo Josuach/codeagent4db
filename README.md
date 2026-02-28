@@ -107,6 +107,7 @@ python main.py generate --project /src/duckdb  --cache-dir /data/duckdb_cache --
 ├── subsystem_map.json    # 子系统映射（预处理产物）
 ├── callchains.json       # 调用链（预处理产物）
 ├── file_hashes.json      # 增量更新哈希（预处理产物）
+├── struct_index.json     # 结构体/联合体/枚举索引（预处理产物）
 └── output_<feature>.diff # 生成的代码修改（generate 输出）
 ```
 
@@ -135,7 +136,8 @@ codeagent/
 ├── .gitignore
 │
 ├── preprocess/                  # 预处理模块（离线执行，结果缓存）
-│   ├── c_parser.py              # 纯 Python C 源码解析（函数提取 + 调用关系）
+│   ├── c_parser.py              # 纯 Python C 源码解析（函数 + 结构体提取 + 调用关系）
+│   ├── struct_indexer.py        # 结构体/联合体/枚举索引构建（无 LLM 调用）
 │   ├── callchain_builder.py     # BFS 构建调用链树
 │   ├── batch_summarizer.py      # LLM 批量生成函数富摘要（每10批自动存档）
 │   ├── subsystem_mapper.py      # LLM 生成子系统语义映射
@@ -147,8 +149,8 @@ codeagent/
 │   └── layer3_callgraph.py      # 调用链扩展 + 工具函数黑名单
 │
 ├── agent/                       # LLM 调用层
-│   ├── planner.py               # Call 1：规划，输出 JSON 实现计划
-│   └── implementer.py           # Call 2+3：生成 unified diff
+│   ├── planner.py               # Call 1：规划，输出 JSON 实现计划（含交互反馈修订）
+│   └── implementer.py           # Call 2+3：生成 unified diff（自动注入相关结构体定义）
 │
 └── cache/                       # 默认缓存目录（.gitignore 已排除，可用 --cache-dir 指定其他路径）
     ├── function_index.json      # 函数富摘要索引（预处理产物）
@@ -186,6 +188,51 @@ codeagent/
 ## 大文件处理
 
 SQLite 等项目中存在超大文件（`btree.c` 11,544 行、`vdbe.c` 9,321 行、`sqliteInt.h` 5,899 行）。implementer 会自动从 `function_index` 中定位相关函数的行号，只向 LLM 传入相关段落（上下文窗口上限 30,000 字符），而非整个文件。
+
+---
+
+## 交互式规划审查
+
+`generate` 命令默认在 Call 1 规划完成后暂停，展示计划并等待用户确认：
+
+```
+============================================================
+  Implementation Plan
+============================================================
+Complexity   : medium
+Affected files (2): btree.c, btreeInt.h
+Modify (3): sqlite3BtreeInsert, btreeNext, allocateBtreePage
+...
+Steps:
+  1. In btreeInt.h add field `u8 useART` to BtShared ...
+============================================================
+
+Press Enter to proceed with this plan, type feedback to revise it,
+or type 'abort' to quit.
+> functions_to_modify 还应包含 moveToChild，请补充
+[agent] Revising plan based on feedback ...
+```
+
+- 直接回车 / 输入 `y` / `ok` → 接受计划，继续生成代码
+- 输入修改意见 → LLM 根据反馈重新规划，再次展示，循环直到确认
+- 输入 `abort` → 放弃本次 generate
+
+若在脚本/CI 中使用，加 `--no-interactive` 跳过交互步骤：
+
+```bash
+python main.py generate --project /path/to/db --feature "..." --no-interactive
+```
+
+---
+
+## 结构体索引
+
+预处理阶段自动扫描所有 `.h` 和 `.c` 文件，提取 `struct` / `union` / `enum` 定义，保存为 `struct_index.json`（无 LLM 调用，通常几秒内完成）。
+
+生成阶段（Call 2）：
+- 规划器（Call 1）在输出的 `relevant_structs` 字段中列举所需结构体名称
+- 实现器自动从索引中取出对应定义，注入到代码生成 prompt 中
+- LLM 因此可以直接引用正确的字段名和类型，减少幻觉错误
 
 ---
 

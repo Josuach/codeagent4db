@@ -55,12 +55,17 @@ from preprocess.subsystem_mapper import (
     load_subsystem_map,
 )
 from preprocess.incremental import find_changed_files
+from preprocess.struct_indexer import (
+    build_struct_index,
+    save_struct_index,
+    load_struct_index,
+)
 
 from retrieval.layer1_subsystem import locate_subsystems, filter_functions_by_subsystem
 from retrieval.layer2_bm25 import bm25_search_scoped
 from retrieval.layer3_callgraph import expand_with_callgraph, format_candidates_for_prompt
 
-from agent.planner import plan_feature
+from agent.planner import plan_feature, plan_feature_with_feedback, format_plan_for_display
 from agent.implementer import implement_feature, integrate_interfaces
 from agent.checker import compile_check_and_fix
 
@@ -81,6 +86,7 @@ def _cache_paths(cache_dir: str) -> dict:
         "subsystem_map":  os.path.join(cache_dir, "subsystem_map.json"),
         "callchains":     os.path.join(cache_dir, "callchains.json"),
         "file_hashes":    os.path.join(cache_dir, "file_hashes.json"),
+        "struct_index":   os.path.join(cache_dir, "struct_index.json"),
     }
 
 
@@ -185,11 +191,68 @@ def cmd_preprocess(args, client: LLMClient):
         tracker.update(all_files)
         tracker.save()
 
+    # --- Step 6: Build struct / union / enum index (no LLM calls) ---
+    print("[main] building struct/union/enum index ...")
+    struct_idx = build_struct_index(project_root)
+    save_struct_index(struct_idx, paths["struct_index"])
+    print(f"  Struct index:   {len(struct_idx)} definitions → {paths['struct_index']}")
+
     print("[main] preprocessing complete.")
     print(f"  Function index: {len(func_index)} functions  →  {paths['function_index']}")
     print(f"  File index:     {len(file_index)} files      →  {paths['file_index']}")
     print(f"  Subsystem map:  {paths['subsystem_map']}")
     print(f"  Call chains:    {paths['callchains']}")
+
+
+# ---------------------------------------------------------------------------
+# Interactive plan review helper
+# ---------------------------------------------------------------------------
+
+def _interactive_plan_review(
+    plan: dict,
+    feature_desc: str,
+    project_overview: str,
+    callchains_text: str,
+    client: LLMClient,
+    model: str,
+) -> dict:
+    """
+    Display the current plan and enter an interactive loop:
+      - Empty input / 'y' / 'yes' / 'ok'  → accept plan and return it
+      - 'abort' / 'quit'                   → return None (caller should exit)
+      - Any other text                     → treat as feedback, re-plan, repeat
+
+    Returns the accepted plan dict, or None if the user aborted.
+    """
+    while True:
+        print()
+        print(format_plan_for_display(plan))
+        print()
+        print("Press Enter to proceed with this plan, type feedback to revise it,")
+        print("or type 'abort' to quit.")
+        try:
+            user_input = input("> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return None
+
+        if user_input.lower() in ("", "y", "yes", "ok", "proceed", "continue"):
+            return plan
+
+        if user_input.lower() in ("abort", "quit", "exit", "q"):
+            return None
+
+        # User gave feedback — re-plan
+        print(f"\n[agent] Revising plan based on feedback ...")
+        plan = plan_feature_with_feedback(
+            feature_desc=feature_desc,
+            project_overview=project_overview,
+            callchains_text=callchains_text,
+            client=client,
+            feedback=user_input,
+            prev_plan=plan,
+            model=model,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -211,6 +274,11 @@ def cmd_generate(args, client: LLMClient):
     # Load cache artifacts
     func_index = load_index(paths["function_index"])
     subsystem_map = load_subsystem_map(paths["subsystem_map"])
+    struct_index = load_struct_index(paths["struct_index"])
+    if struct_index:
+        print(f"[main] loaded struct index: {len(struct_index)} definitions")
+    else:
+        print("[main] struct_index.json not found — run preprocess to build it")
 
     if not func_index:
         sys.exit(
@@ -264,16 +332,29 @@ def cmd_generate(args, client: LLMClient):
         callchains_text=callchains_text,
         client=client,
         model=args.model,
+        struct_index=struct_index,
     )
 
-    print(f"[agent] complexity: {plan.get('complexity')}")
-    print(f"[agent] affected files: {plan.get('affected_files')}")
-    print(f"[agent] functions to modify: {plan.get('functions_to_modify')}")
+    # --- Interactive plan review ---
+    if not getattr(args, "no_interactive", False):
+        plan = _interactive_plan_review(
+            plan=plan,
+            feature_desc=feature_desc,
+            project_overview=project_overview,
+            callchains_text=callchains_text,
+            client=client,
+            model=args.model,
+        )
+        if plan is None:
+            print("[main] Aborted by user.")
+            return
+    else:
+        print(format_plan_for_display(plan))
 
     # --- Call 2: Implementation ---
     print("[agent] Call 2: generating code ...")
     diff_main = implement_feature(plan, project_root, client, model=args.model,
-                                  function_index=func_index)
+                                  function_index=func_index, struct_index=struct_index)
 
     # --- Call 3 (if high complexity): Interface integration ---
     diff_headers = ""
@@ -406,6 +487,8 @@ def main():
     gen.add_argument("--compile-cmd", default="",
                      help="Compile command to run for --compile-check (e.g. 'gcc -c mdb.c', 'make'); "
                           "if empty, tries 'make' then falls back to compiling .c files with gcc")
+    gen.add_argument("--no-interactive", action="store_true",
+                     help="Skip the interactive plan review step and proceed directly to implementation")
 
     args = parser.parse_args()
 

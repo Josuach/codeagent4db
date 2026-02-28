@@ -53,6 +53,11 @@ PLAN_JSON_SCHEMA = {
             "items": {"type": "string"},
             "description": "Header file names that need changes (empty list if none)",
         },
+        "relevant_structs": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Names of structs/unions/enums whose definitions are needed for implementation (choose from the Available Structs list; empty list if none)",
+        },
         "implementation_plan": {
             "type": "string",
             "description": "Step-by-step implementation instructions, specific down to the function level",
@@ -60,7 +65,8 @@ PLAN_JSON_SCHEMA = {
     },
     "required": [
         "complexity", "affected_files", "functions_to_modify",
-        "functions_to_add", "new_files", "header_changes", "implementation_plan",
+        "functions_to_add", "new_files", "header_changes",
+        "relevant_structs", "implementation_plan",
     ],
 }
 
@@ -82,6 +88,9 @@ USER_PROMPT_TEMPLATE = """\
 ## Candidate Functions (filtered by relevance, ordered by score)
 {candidates}
 
+## Available Structs / Unions / Enums in this codebase
+{structs_summary}
+
 ## Task
 Produce an implementation plan in JSON format based on the feature description and candidate functions above.
 
@@ -89,7 +98,24 @@ Guidelines:
 - affected_files: file names only (e.g. build.c), no directory paths
 - functions_to_modify: at most 10 most critical existing functions, no duplicates
 - If a function signature changes, include the corresponding header in header_changes
+- relevant_structs: list struct/union/enum names (from Available Structs above) whose definitions the implementer will need; empty list if none
 - implementation_plan: concrete steps down to the function level
+"""
+
+REFINE_USER_PROMPT_TEMPLATE = """\
+## Feature Request
+{feature_desc}
+
+## Current Implementation Plan
+{current_plan_json}
+
+## User Feedback
+{feedback}
+
+## Task
+Revise the implementation plan based on the user's feedback.
+Keep all unchanged parts intact; only adjust what the feedback requires.
+Produce the revised plan in the same JSON format.
 """
 
 
@@ -140,6 +166,16 @@ def _normalize_plan(plan: dict) -> dict:
     return plan
 
 
+def _structs_summary(struct_index: dict) -> str:
+    """Return a compact list of known struct names for the planner prompt."""
+    if not struct_index:
+        return "(no struct index available)"
+    names = sorted(struct_index.keys())
+    MAX = 80
+    suffix = f" ... ({len(names)} total)" if len(names) > MAX else ""
+    return ", ".join(names[:MAX]) + suffix
+
+
 def plan_feature(
     feature_desc: str,
     candidates_text: str,
@@ -147,6 +183,7 @@ def plan_feature(
     callchains_text: str,
     client: LLMClient,
     model: str = "",
+    struct_index: dict = None,
 ) -> dict:
     """
     Call the LLM to produce an implementation plan.
@@ -172,6 +209,7 @@ def plan_feature(
     user = USER_PROMPT_TEMPLATE.format(
         feature_desc=feature_desc,
         candidates=candidates_text,
+        structs_summary=_structs_summary(struct_index or {}),
     )
 
     plan = client.chat_structured(
@@ -192,8 +230,98 @@ def plan_feature(
             "functions_to_add": [],
             "new_files": [],
             "header_changes": [],
+            "relevant_structs": [],
             "implementation_plan": "(structured output failed)",
             "_parse_error": True,
         }
 
     return _normalize_plan(plan)
+
+
+def plan_feature_with_feedback(
+    feature_desc: str,
+    project_overview: str,
+    callchains_text: str,
+    client: LLMClient,
+    feedback: str,
+    prev_plan: dict,
+    model: str = "",
+) -> dict:
+    """
+    Re-run planning with user feedback to refine the previous plan.
+
+    Args:
+        feature_desc: original feature description
+        project_overview: contents of project_overview.md
+        callchains_text: formatted call chains
+        client: LLMClient instance
+        feedback: user's revision instructions
+        prev_plan: the plan dict produced by the previous planning call
+        model: model to use (empty string = use client default)
+
+    Returns:
+        Revised plan dict (falls back to prev_plan if the LLM call fails)
+    """
+    import json as _json
+    model = model or client.default_model("main")
+
+    system = SYSTEM_PROMPT_TEMPLATE.format(
+        project_overview=project_overview,
+        callchains=callchains_text,
+    )
+    user = REFINE_USER_PROMPT_TEMPLATE.format(
+        feature_desc=feature_desc,
+        current_plan_json=_json.dumps(prev_plan, ensure_ascii=False, indent=2),
+        feedback=feedback,
+    )
+
+    plan = client.chat_structured(
+        model=model,
+        system=system,
+        user=user,
+        max_tokens=8192,
+        schema_name=PLAN_SCHEMA_NAME,
+        json_schema=PLAN_JSON_SCHEMA,
+    )
+
+    if not plan:
+        print("[warn] plan refinement returned empty dict; keeping previous plan.")
+        return prev_plan
+
+    return _normalize_plan(plan)
+
+
+def format_plan_for_display(plan: dict) -> str:
+    """Return a human-readable summary of the implementation plan."""
+    lines = ["=" * 60, "  Implementation Plan", "=" * 60]
+    lines.append(f"Complexity   : {plan.get('complexity', 'unknown')}")
+
+    affected = plan.get("affected_files", [])
+    lines.append(f"Affected files ({len(affected)}): {', '.join(affected) or '(none)'}")
+
+    mods = plan.get("functions_to_modify", [])
+    lines.append(f"Modify ({len(mods)}): {', '.join(mods) or '(none)'}")
+
+    adds = plan.get("functions_to_add", [])
+    if adds:
+        lines.append(f"Add ({len(adds)}):")
+        for fa in adds:
+            lines.append(f"  + {fa.get('name', '?')}  in {fa.get('in_file', '?')}")
+
+    new_files = plan.get("new_files", [])
+    if new_files:
+        lines.append(f"New files    : {', '.join(new_files)}")
+
+    headers = plan.get("header_changes", [])
+    if headers:
+        lines.append(f"Header changes: {', '.join(headers)}")
+
+    structs = plan.get("relevant_structs", [])
+    if structs:
+        lines.append(f"Relevant structs: {', '.join(structs)}")
+
+    lines.append("")
+    lines.append("Steps:")
+    lines.append(plan.get("implementation_plan", "(empty)"))
+    lines.append("=" * 60)
+    return "\n".join(lines)

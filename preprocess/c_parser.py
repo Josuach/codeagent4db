@@ -7,7 +7,7 @@ using regex + bracket-depth matching. No external tools required.
 import re
 import os
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, List
 
 # C keywords and common macros that look like function calls — exclude from call lists
 C_KEYWORDS = {
@@ -320,3 +320,142 @@ def get_function_by_name(name: str, file_map: dict[str, list[FunctionInfo]]) -> 
             if f.name == name:
                 return f
     return None
+
+
+# ---------------------------------------------------------------------------
+# Struct / union / enum extraction
+# ---------------------------------------------------------------------------
+
+@dataclass
+class StructInfo:
+    name: str           # typedef alias or tag name
+    kind: str           # "struct", "union", or "enum"
+    file: str           # relative path from project root
+    start_line: int
+    end_line: int
+    body: str           # full definition text (may be truncated for large defs)
+
+
+# Matches the beginning of a struct/union/enum definition.
+# Group 1: "typedef " prefix (optional)
+# Group 2: kind (struct / union / enum)
+# Group 3: optional tag name
+_STRUCT_RE = re.compile(
+    r'\b(typedef\s+)?'
+    r'(struct|union|enum)\s+'
+    r'(?:([a-zA-Z_][a-zA-Z0-9_]*)\s*)?',
+    re.MULTILINE,
+)
+
+# Max characters to store per struct body (avoid storing huge structs verbatim)
+_MAX_STRUCT_BODY_CHARS = 3000
+
+
+def extract_structs(filepath: str, project_root: str = "") -> List[StructInfo]:
+    """
+    Parse a C source or header file and return StructInfo for every
+    struct/union/enum definition found.
+
+    Args:
+        filepath: absolute or relative path to the .c / .h file
+        project_root: if provided, file paths in StructInfo are relative to this
+    """
+    try:
+        with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+            original_source = f.read()
+    except OSError:
+        return []
+
+    stripped = _strip_comments_for_parsing(original_source)
+    orig_lines = original_source.split("\n")
+
+    rel_path = os.path.relpath(filepath, project_root) if project_root else filepath
+    rel_path = rel_path.replace("\\", "/")
+
+    structs: List[StructInfo] = []
+    seen_names: set = set()
+
+    for m in _STRUCT_RE.finditer(stripped):
+        is_typedef = bool(m.group(1))
+        kind = m.group(2)        # "struct" / "union" / "enum"
+        tag_name = m.group(3)    # may be None
+
+        # Find the opening brace after the match
+        brace_pos = stripped.find("{", m.end())
+        if brace_pos == -1:
+            continue
+
+        # Skip forward declarations like "struct Foo;" or "typedef struct Foo Bar;"
+        between = stripped[m.end():brace_pos]
+        if ";" in between:
+            continue
+
+        close_brace_pos = _find_matching_brace(stripped, brace_pos)
+        if close_brace_pos == -1:
+            continue
+
+        # For typedefs: the alias name follows the closing brace
+        alias_name: Optional[str] = None
+        alias_suffix_len = 0
+        if is_typedef:
+            after = stripped[close_brace_pos + 1:]
+            alias_m = re.match(r'\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*;', after)
+            if alias_m:
+                alias_name = alias_m.group(1)
+                alias_suffix_len = alias_m.end()
+
+        name = alias_name or tag_name
+        if not name:
+            continue  # anonymous with no typedef alias — skip
+        if name in seen_names:
+            continue  # take first definition only
+        seen_names.add(name)
+
+        # Compute line numbers from stripped (line counts are preserved)
+        start_line = stripped[:m.start()].count("\n") + 1
+        if alias_name:
+            end_pos = close_brace_pos + 1 + alias_suffix_len
+        else:
+            end_pos = close_brace_pos + 1
+        end_line = stripped[:end_pos].count("\n") + 1
+
+        # Extract body from original source using line numbers (safe since
+        # _strip_comments_for_parsing preserves newline count per line)
+        body_lines = orig_lines[start_line - 1: end_line]
+        body = "\n".join(body_lines)
+        if len(body) > _MAX_STRUCT_BODY_CHARS:
+            body = body[:_MAX_STRUCT_BODY_CHARS] + "\n    /* ... truncated ... */"
+
+        structs.append(StructInfo(
+            name=name,
+            kind=kind,
+            file=rel_path,
+            start_line=start_line,
+            end_line=end_line,
+            body=body,
+        ))
+
+    return structs
+
+
+def parse_project_structs(
+    project_root: str,
+    extensions: tuple = (".h", ".c"),
+) -> dict[str, list[StructInfo]]:
+    """
+    Walk a project directory and extract all struct/union/enum definitions
+    from matching files.
+
+    Returns:
+        {relative_file_path: [StructInfo, ...]}
+    """
+    result: dict[str, list[StructInfo]] = {}
+    for dirpath, _dirnames, filenames in os.walk(project_root):
+        for fname in filenames:
+            if any(fname.endswith(ext) for ext in extensions):
+                full_path = os.path.join(dirpath, fname)
+                structs = extract_structs(full_path, project_root)
+                if structs:
+                    rel = os.path.relpath(full_path, project_root).replace("\\", "/")
+                    result[rel] = structs
+    return result
