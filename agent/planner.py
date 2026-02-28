@@ -141,14 +141,22 @@ def _normalize_plan(plan: dict) -> dict:
         ))
 
     if "functions_to_modify" in plan:
-        # Deduplicate while preserving order
+        # Flatten any nested lists and deduplicate while preserving order
         seen = set()
         deduped = []
         for fn in plan["functions_to_modify"]:
-            if fn not in seen:
+            if isinstance(fn, list):
+                fn = fn[0] if fn else ""
+            fn = str(fn)
+            if fn and fn not in seen:
                 seen.add(fn)
                 deduped.append(fn)
         plan["functions_to_modify"] = deduped[:20]  # cap at 20
+
+    if "implementation_plan" in plan:
+        ip = plan["implementation_plan"]
+        if isinstance(ip, list):
+            plan["implementation_plan"] = "\n".join(str(item) for item in ip)
 
     if "functions_to_add" in plan:
         for fn_add in plan["functions_to_add"]:
@@ -322,6 +330,9 @@ def format_plan_for_display(plan: dict) -> str:
 
     lines.append("")
     lines.append("Steps:")
-    lines.append(plan.get("implementation_plan", "(empty)"))
+    impl = plan.get("implementation_plan", "(empty)")
+    if isinstance(impl, list):
+        impl = "\n".join(str(item) for item in impl)
+    lines.append(str(impl))
     lines.append("=" * 60)
     return "\n".join(lines)

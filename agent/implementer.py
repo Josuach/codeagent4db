@@ -340,34 +340,52 @@ def _build_structs_block(plan: dict, struct_index: Optional[dict]) -> str:
     return "\n\n".join(parts)
 
 
-def _file_specific_ops(
-    file_path: str,
+def _build_file_tasks(
     plan: dict,
     function_index: Optional[dict],
-) -> tuple[list[str], list[str]]:
+) -> dict[str, dict]:
     """
-    Return (funcs_to_modify_in_file, funcs_to_add_in_file).
+    Build a mapping {file_path: {"mods": [...], "adds": [...]}} from the plan.
 
-    Filters by file using function_index where available; falls back to the
-    full plan lists if the index has no match for a given file.
+    - functions_to_modify: resolved to their source file via function_index
+      (falls back to affected_files when index is unavailable)
+    - functions_to_add:    resolved via plan["functions_to_add"][i]["in_file"]
+    - new_files:           added with empty mods/adds so new-file diffs are generated
     """
-    all_mods = plan.get("functions_to_modify", [])
-    fp = file_path.replace("\\", "/")
+    file_tasks: dict[str, dict] = {}
 
+    def _ensure(fp: str) -> dict:
+        if fp not in file_tasks:
+            file_tasks[fp] = {"mods": [], "adds": []}
+        return file_tasks[fp]
+
+    # functions_to_modify → resolved file via function_index
     if function_index:
-        file_mods = [
-            fn for fn in all_mods
-            if function_index.get(fn, {}).get("file", "").replace("\\", "/") == fp
-        ] or all_mods
+        for func_name in plan.get("functions_to_modify", []):
+            fp = function_index.get(func_name, {}).get("file", "").replace("\\", "/")
+            if fp:
+                _ensure(fp)["mods"].append(func_name)
+            # if not found in index, silently skip (unknown location)
     else:
-        file_mods = all_mods
+        # No index: fall back to affected_files, assign all mods to each file
+        all_mods = plan.get("functions_to_modify", [])
+        for f in plan.get("affected_files", []):
+            if not f.endswith(".h"):
+                _ensure(f.replace("\\", "/"))["mods"].extend(all_mods)
 
-    file_adds = [
-        fa.get("name", "")
-        for fa in plan.get("functions_to_add", [])
-        if fa.get("in_file", "").replace("\\", "/") == fp
-    ]
-    return file_mods, file_adds
+    # functions_to_add → resolved via in_file
+    for fn_add in plan.get("functions_to_add", []):
+        fp = fn_add.get("in_file", "").replace("\\", "/")
+        if fp and not fp.endswith(".h"):
+            _ensure(fp)["adds"].append(fn_add.get("name", ""))
+
+    # new source files (may have no functions yet)
+    for new_file in plan.get("new_files", []):
+        fp = new_file.replace("\\", "/")
+        if not fp.endswith(".h"):
+            _ensure(fp)
+
+    return file_tasks
 
 
 # ---------------------------------------------------------------------------
@@ -402,23 +420,28 @@ def implement_feature(
     """
     model = model or client.default_model("main")
 
-    # Collect source files (headers handled in Call 3)
-    source_files = [f for f in plan.get("affected_files", []) if not f.endswith(".h")]
-    for fn_add in plan.get("functions_to_add", []):
-        target = fn_add.get("in_file", "")
-        if target and not target.endswith(".h") and target not in source_files:
-            source_files.append(target)
+    # Build {file_path: {mods, adds}} from plan's function lists (not affected_files)
+    file_tasks = _build_file_tasks(plan, function_index)
+
+    if not file_tasks:
+        print("[impl] no source files to process")
+        return ""
 
     # Pre-build the structs block — shared across all per-file calls
     structs_block = _build_structs_block(plan, struct_index)
 
     all_diffs: list[str] = []
-    print(f"[impl] {len(source_files)} source file(s) to process")
+    file_list = list(file_tasks.items())
+    print(f"[impl] {len(file_list)} source file(s) to process")
 
-    for idx, file_path in enumerate(source_files, 1):
-        print(f"  [{idx}/{len(source_files)}] {file_path} ...", end="", flush=True)
-
-        file_mods, file_adds = _file_specific_ops(file_path, plan, function_index)
+    for idx, (file_path, tasks) in enumerate(file_list, 1):
+        file_mods = tasks["mods"]
+        file_adds = tasks["adds"]
+        print(
+            f"  [{idx}/{len(file_list)}] {file_path}"
+            f"  (modify: {len(file_mods)}, add: {len(file_adds)}) ...",
+            end="", flush=True,
+        )
 
         # Use targeted snippet extraction when function_index is available;
         # fall back to character-limited full-file loading otherwise.
