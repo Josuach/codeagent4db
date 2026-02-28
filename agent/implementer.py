@@ -6,6 +6,14 @@ time.  Each LLM call handles exactly one source or header file so that:
   - The output size per call is small and predictable (no truncation).
   - Partial failures affect only the current file, not the whole feature.
 
+Within each file call the prompt contains ONLY:
+  - The specific function bodies that need to be modified (from function_index,
+    with exact line numbers for diff generation)
+  - Insertion-point context for new functions to add
+  - Relevant struct/union/enum definitions from struct_index
+
+This avoids sending large amounts of irrelevant code to the LLM.
+
 For high-complexity features, Call 3 iterates over header files the same way.
 """
 
@@ -14,10 +22,11 @@ from typing import Optional
 
 from llm.client import LLMClient
 
-# Maximum characters per file in the implementation prompt.
-# For large files (btree.c = 11K lines, vdbe.c = 9K lines), we extract only
-# the relevant function sections rather than loading the full file.
+# Fallback: maximum characters per file when function_index is unavailable.
 MAX_FILE_CHARS = 30000
+
+# Lines of context shown before/after each function body.
+FUNC_CONTEXT_LINES = 5
 
 
 # ---------------------------------------------------------------------------
@@ -32,6 +41,7 @@ SYSTEM_PROMPT_IMPL_FILE = """\
 - 只输出该文件的 unified diff 格式修改（--- a/... +++ b/... @@ ... @@），不输出任何解释文字
 - 新建文件用 --- /dev/null 和 +++ b/文件路径 的格式
 - diff 内容必须语法正确，可以直接用 patch -p1 应用
+- 代码片段中每行前面的数字是该行在文件中的真实行号，请用这些行号生成正确的 @@ 标记
 - 如果该文件无需修改，输出空字符串
 """
 
@@ -70,10 +80,12 @@ USER_PROMPT_IMPL_FILE_TEMPLATE = """\
 ## 相关结构体 / 联合体 / 枚举定义
 {structs_content}
 
-## 文件内容
+## 文件相关代码片段（带行号）
 {file_content}
 
-请输出 `{file_path}` 的 unified diff。如该文件无需修改，输出空字符串。
+请根据实现计划，生成 `{file_path}` 的 unified diff。
+行号已在代码片段中标注（格式 "  NNN: 代码行"），请用这些行号生成正确的 @@ 标记。
+如该文件无需修改，输出空字符串。
 """
 
 USER_PROMPT_INTEGRATE_FILE_TEMPLATE = """\
@@ -83,7 +95,7 @@ USER_PROMPT_INTEGRATE_FILE_TEMPLATE = """\
 ## 已生成的源文件修改（Call 2 的输出，供参考）
 {existing_diff}
 
-## 当前头文件内容
+## 当前头文件相关片段（带行号）
 {file_content}
 
 请为 `{file_path}` 补充必要的声明和接口调整，只输出该文件的 unified diff。
@@ -130,6 +142,99 @@ def _is_valid_diff(text: str) -> bool:
     return bool(text) and "---" in text and "+++" in text
 
 
+def _load_function_snippets(
+    file_path: str,
+    project_root: str,
+    funcs_to_modify: list[str],
+    funcs_to_add: list[str],
+    function_index: dict,
+    context_lines: int = FUNC_CONTEXT_LINES,
+) -> str:
+    """
+    Extract only the relevant function bodies from a file, annotated with
+    real line numbers so the LLM can generate precise unified diff hunks.
+
+    Args:
+        file_path: relative path from project root
+        project_root: absolute path to project root
+        funcs_to_modify: function names to be modified in this file
+        funcs_to_add: function names to be newly added (show insertion point)
+        function_index: preprocessed function index with start_line / end_line
+        context_lines: extra lines shown before/after each function
+
+    Returns:
+        Formatted string with numbered code sections, or a "new file" notice.
+    """
+    full_path = os.path.join(project_root, file_path)
+    if not os.path.exists(full_path):
+        return f"(文件不存在，需要新建: {file_path})"
+
+    with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+        all_lines = f.readlines()
+    total_lines = len(all_lines)
+
+    fp = file_path.replace("\\", "/")
+
+    # Collect (start_0idx, end_0idx, label) sections
+    sections: list[tuple[int, int, str]] = []
+
+    for func_name in funcs_to_modify:
+        info = function_index.get(func_name, {})
+        if info.get("file", "").replace("\\", "/") != fp:
+            continue
+        s1 = info.get("start_line", 1)   # 1-based
+        e1 = info.get("end_line", s1)    # 1-based
+        start = max(0, s1 - 1 - context_lines)
+        end = min(total_lines, e1 + context_lines)
+        sections.append((start, end, f"[modify] {func_name}"))
+
+    # For new functions: show the insertion point — end of the last known
+    # function in this file, so the LLM knows where to append.
+    if funcs_to_add:
+        last_end_line = 0
+        for info in function_index.values():
+            if info.get("file", "").replace("\\", "/") == fp:
+                last_end_line = max(last_end_line, info.get("end_line", 0))
+        if last_end_line > 0:
+            start = max(0, last_end_line - 1 - context_lines)
+            end = min(total_lines, last_end_line + context_lines)
+        else:
+            start = max(0, total_lines - 30)
+            end = total_lines
+        label = "[add — insert after] " + ", ".join(funcs_to_add)
+        sections.append((start, end, label))
+
+    if not sections:
+        # Fallback: show first 100 lines (includes, top-level declarations)
+        sections = [(0, min(100, total_lines), "file header (no specific functions located)")]
+
+    # Sort and merge adjacent / overlapping sections
+    sections.sort()
+    merged: list[list] = []
+    for start, end, label in sections:
+        if merged and start <= merged[-1][1] + 5:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end, label])
+
+    # Build formatted output with line numbers
+    parts = [f"/* File: {file_path}  (total: {total_lines} lines) */"]
+    prev_end = 0
+    for seg in merged:
+        start, end, label = seg
+        if start > prev_end:
+            parts.append(f"\n/* ... (lines {prev_end + 1}–{start} omitted) ... */\n")
+        parts.append(f"/* {label} */")
+        for i, raw_line in enumerate(all_lines[start:end]):
+            parts.append(f"{start + i + 1:6d}: {raw_line.rstrip()}")
+        prev_end = end
+
+    if prev_end < total_lines:
+        parts.append(f"\n/* ... (lines {prev_end + 1}–{total_lines} omitted) ... */")
+
+    return "\n".join(parts)
+
+
 def _load_file_content(
     file_path: str,
     project_root: str,
@@ -137,18 +242,9 @@ def _load_file_content(
     function_index: Optional[dict] = None,
 ) -> tuple[str, str]:
     """
-    Load a file and return (relative_path, content).
-    For large files, extract only the relevant function sections to avoid
-    exceeding the LLM context window.
-
-    Args:
-        file_path: relative path from project root
-        project_root: absolute path to project root
-        relevant_funcs: function names relevant to this file (from plan)
-        function_index: function index for locating functions by line number
-
-    Returns:
-        (relative_path, content) — content may be truncated for large files
+    Fallback file loader: returns (relative_path, content) with character-based
+    truncation for large files.  Used for header files in integrate_interfaces()
+    and as a last resort when function_index is unavailable.
     """
     full_path = os.path.join(project_root, file_path)
     if not os.path.exists(full_path):
@@ -156,30 +252,25 @@ def _load_file_content(
     with open(full_path, "r", encoding="utf-8", errors="replace") as f:
         content = f.read()
 
-    # If file is small enough, return as-is
     if len(content) <= MAX_FILE_CHARS:
         return file_path, content
 
-    # Large file: extract relevant sections
     lines = content.splitlines(keepends=True)
     total_lines = len(lines)
 
-    # Try to find relevant function locations from function_index
-    sections_to_include: list[tuple[int, int]] = []  # (start, end) 0-indexed line numbers
+    sections_to_include: list[tuple[int, int]] = []
     if relevant_funcs and function_index:
         for func_name in relevant_funcs:
             info = function_index.get(func_name, {})
             if info.get("file", "").replace("\\", "/") == file_path.replace("\\", "/"):
-                start = max(0, info.get("start_line", 1) - 1 - 10)  # 10 lines before
+                start = max(0, info.get("start_line", 1) - 1 - 10)
                 end = min(total_lines, info.get("end_line", info.get("start_line", 1)) + 5)
                 sections_to_include.append((start, end))
 
     if not sections_to_include:
-        # No specific functions found; include beginning (includes, struct defs) + first MAX_FILE_CHARS chars
-        header_end = min(200, total_lines)  # first 200 lines usually has includes/structs
+        header_end = min(200, total_lines)
         sections_to_include = [(0, header_end)]
 
-    # Merge overlapping sections and sort
     sections_to_include.sort()
     merged: list[tuple[int, int]] = []
     for s, e in sections_to_include:
@@ -188,10 +279,7 @@ def _load_file_content(
         else:
             merged.append((s, e))
 
-    # Extract sections and join with ellipsis markers
-    parts = [
-        f"/* ... (lines 1-{merged[0][0]}) ... */\n" if merged[0][0] > 0 else ""
-    ]
+    parts = [f"/* ... (lines 1-{merged[0][0]}) ... */\n" if merged[0][0] > 0 else ""]
     for i, (s, e) in enumerate(merged):
         parts.append("".join(lines[s:e]))
         if i + 1 < len(merged):
@@ -200,8 +288,6 @@ def _load_file_content(
             parts.append(f"\n/* ... (lines {e+1}-{total_lines}, {total_lines - e} more lines) ... */\n")
 
     extracted = "".join(parts)
-
-    # If still too large, truncate with a note
     if len(extracted) > MAX_FILE_CHARS:
         extracted = extracted[:MAX_FILE_CHARS] + f"\n/* ... truncated (file has {total_lines} lines total) ... */"
 
@@ -233,10 +319,7 @@ def _build_structs_block(plan: dict, struct_index: Optional[dict]) -> str:
 
     import re as _re
 
-    # Gather names from the plan
     names: list = list(plan.get("relevant_structs", []))
-
-    # Supplement with names found in the implementation_plan text
     plan_text = plan.get("implementation_plan", "")
     for name in struct_index:
         if name not in names and _re.search(r'\b' + _re.escape(name) + r'\b', plan_text):
@@ -263,11 +346,10 @@ def _file_specific_ops(
     function_index: Optional[dict],
 ) -> tuple[list[str], list[str]]:
     """
-    Return (funcs_to_modify, funcs_to_add) that belong to file_path.
+    Return (funcs_to_modify_in_file, funcs_to_add_in_file).
 
-    For funcs_to_modify we use function_index to filter by file; if no match
-    is found we fall back to the full list (so the LLM still has context).
-    For funcs_to_add we match on the in_file field.
+    Filters by file using function_index where available; falls back to the
+    full plan lists if the index has no match for a given file.
     """
     all_mods = plan.get("functions_to_modify", [])
     fp = file_path.replace("\\", "/")
@@ -276,7 +358,7 @@ def _file_specific_ops(
         file_mods = [
             fn for fn in all_mods
             if function_index.get(fn, {}).get("file", "").replace("\\", "/") == fp
-        ] or all_mods  # fallback: pass all when index has no match
+        ] or all_mods
     else:
         file_mods = all_mods
 
@@ -303,30 +385,31 @@ def implement_feature(
     """
     Call 2: Generate unified diffs for all affected source files.
 
-    Iterates over each source file individually to keep each LLM call small
-    and focused, preventing truncated or empty responses on large features.
+    One LLM call per source file. Each call receives only the specific
+    function bodies and struct definitions relevant to that file, with line
+    numbers so the LLM can produce accurate diff hunks.
 
     Args:
         plan: output from planner.plan_feature()
         project_root: absolute path to the C project root
         client: LLMClient instance
         model: model to use (empty string = use client default)
-        function_index: optional function index for smart large-file extraction
-        struct_index: optional struct index for injecting struct definitions
+        function_index: preprocessed function index (start_line / end_line per function)
+        struct_index: preprocessed struct/union/enum index
 
     Returns:
         Concatenated unified diff string across all modified files.
     """
     model = model or client.default_model("main")
 
-    # Collect source files to process (exclude .h — handled in Call 3)
+    # Collect source files (headers handled in Call 3)
     source_files = [f for f in plan.get("affected_files", []) if not f.endswith(".h")]
     for fn_add in plan.get("functions_to_add", []):
         target = fn_add.get("in_file", "")
         if target and not target.endswith(".h") and target not in source_files:
             source_files.append(target)
 
-    # Pre-build the structs block (shared across all file calls)
+    # Pre-build the structs block — shared across all per-file calls
     structs_block = _build_structs_block(plan, struct_index)
 
     all_diffs: list[str] = []
@@ -337,16 +420,20 @@ def implement_feature(
 
         file_mods, file_adds = _file_specific_ops(file_path, plan, function_index)
 
-        _, content = _load_file_content(
-            file_path, project_root,
-            relevant_funcs=file_mods,
-            function_index=function_index,
-        )
-
-        if content:
-            file_content = f"=== {file_path} ===\n{content}"
+        # Use targeted snippet extraction when function_index is available;
+        # fall back to character-limited full-file loading otherwise.
+        if function_index:
+            file_content = _load_function_snippets(
+                file_path, project_root,
+                funcs_to_modify=file_mods,
+                funcs_to_add=file_adds,
+                function_index=function_index,
+            )
         else:
-            file_content = f"=== {file_path} (文件不存在，需要新建) ===\n(空文件)"
+            _, raw = _load_file_content(file_path, project_root,
+                                        relevant_funcs=file_mods)
+            file_content = f"=== {file_path} ===\n{raw}" if raw else \
+                           f"(文件不存在，需要新建: {file_path})"
 
         user_msg = USER_PROMPT_IMPL_FILE_TEMPLATE.format(
             implementation_plan=plan.get("implementation_plan", ""),
@@ -385,8 +472,8 @@ def integrate_interfaces(
     Call 3 (for high-complexity features only): Check header files and
     cross-module interface consistency.
 
-    Iterates over each header file individually, passing the accumulated
-    source-file diffs as context.
+    One LLM call per header file, with the accumulated source-file diffs
+    passed as context.
 
     Args:
         plan: output from planner.plan_feature()
