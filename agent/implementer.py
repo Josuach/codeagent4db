@@ -1,11 +1,12 @@
 """
 Call 2 (and optional Call 3): Implementation agent.
 
-Takes the plan from Call 1 + full contents of affected files and generates
-unified diff patches for all required changes.
+Takes the plan from Call 1 and generates unified diff patches, one file at a
+time.  Each LLM call handles exactly one source or header file so that:
+  - The output size per call is small and predictable (no truncation).
+  - Partial failures affect only the current file, not the whole feature.
 
-For high-complexity features, a second implementation call handles header
-files and cross-module interface consistency.
+For high-complexity features, Call 3 iterates over header files the same way.
 """
 
 import os
@@ -19,16 +20,19 @@ from llm.client import LLMClient
 MAX_FILE_CHARS = 30000
 
 
-SYSTEM_PROMPT_IMPL = """\
+# ---------------------------------------------------------------------------
+# System prompts
+# ---------------------------------------------------------------------------
+
+SYSTEM_PROMPT_IMPL_FILE = """\
 你是一名资深 C 语言数据库内核工程师。
-你的任务是根据实现计划，对提供的 C 源文件进行精确修改。
+你的任务是根据实现计划，对【单个文件】进行精确修改。
 
 输出规范：
-- 只输出 unified diff 格式的修改（--- a/... +++ b/... @@ ... @@），不输出任何解释文字
-- 每个文件的修改用一个完整的 diff 块表示
-- 新增文件用 --- /dev/null 和 +++ b/新文件路径 的格式
+- 只输出该文件的 unified diff 格式修改（--- a/... +++ b/... @@ ... @@），不输出任何解释文字
+- 新建文件用 --- /dev/null 和 +++ b/文件路径 的格式
 - diff 内容必须语法正确，可以直接用 patch -p1 应用
-- 如果某个文件不需要修改，不要输出它的 diff
+- 如果该文件无需修改，输出空字符串
 """
 
 SYSTEM_PROMPT_INTEGRATE = """\
@@ -41,32 +45,89 @@ SYSTEM_PROMPT_INTEGRATE = """\
 - 如果接口已经正确，输出空字符串
 """
 
-USER_PROMPT_IMPL_TEMPLATE = """\
-## 实现计划
+SYSTEM_PROMPT_FIX = """\
+你是一名资深 C 语言数据库内核工程师。
+你的任务是根据编译错误，修复一个有问题的 unified diff。
+
+输出规范：
+- 只输出修复后的完整 unified diff，不输出任何解释文字
+- diff 必须可以直接用 patch -p1 应用
+"""
+
+
+# ---------------------------------------------------------------------------
+# User prompt templates
+# ---------------------------------------------------------------------------
+
+USER_PROMPT_IMPL_FILE_TEMPLATE = """\
+## 总体实现计划
 {implementation_plan}
+
+## 当前任务：处理文件 `{file_path}`
+- 需要修改的函数：{funcs_to_modify}
+- 需要新增的函数：{funcs_to_add}
 
 ## 相关结构体 / 联合体 / 枚举定义
 {structs_content}
 
-## 受影响文件的完整内容
-{files_content}
+## 文件内容
+{file_content}
 
-请根据实现计划修改上述文件，只输出 unified diff。
+请输出 `{file_path}` 的 unified diff。如该文件无需修改，输出空字符串。
 """
 
-USER_PROMPT_INTEGRATE_TEMPLATE = """\
+USER_PROMPT_INTEGRATE_FILE_TEMPLATE = """\
 ## 实现计划
 {implementation_plan}
 
-## 已生成的代码修改（Call 2 的输出）
+## 已生成的源文件修改（Call 2 的输出，供参考）
 {existing_diff}
 
-## 头文件内容
-{headers_content}
+## 当前头文件内容
+{file_content}
 
-请检查上述修改，补充必要的头文件声明和跨模块接口调整，只输出 unified diff。
+请为 `{file_path}` 补充必要的声明和接口调整，只输出该文件的 unified diff。
 如果无需调整，输出空字符串。
 """
+
+USER_PROMPT_FIX_TEMPLATE = """\
+## 实现计划
+{implementation_plan}
+
+## 当前 diff（编译失败）
+{diff}
+
+## 编译错误
+{compile_errors}
+
+请修复上述编译错误，输出修复后的完整 unified diff。
+"""
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _strip_markdown_codeblock(text: str) -> str:
+    """
+    Remove ```diff ... ``` or ``` ... ``` wrappers that LLMs sometimes add
+    around their diff output.
+    """
+    text = text.strip()
+    for prefix in ("```diff\n", "```c\n", "```\n", "```diff", "```c", "```"):
+        if text.startswith(prefix):
+            text = text[len(prefix):]
+            break
+    if text.endswith("\n```"):
+        text = text[:-4]
+    elif text.endswith("```"):
+        text = text[:-3]
+    return text.strip()
+
+
+def _is_valid_diff(text: str) -> bool:
+    """Return True if text looks like a non-empty unified diff."""
+    return bool(text) and "---" in text and "+++" in text
 
 
 def _load_file_content(
@@ -196,6 +257,41 @@ def _build_structs_block(plan: dict, struct_index: Optional[dict]) -> str:
     return "\n\n".join(parts)
 
 
+def _file_specific_ops(
+    file_path: str,
+    plan: dict,
+    function_index: Optional[dict],
+) -> tuple[list[str], list[str]]:
+    """
+    Return (funcs_to_modify, funcs_to_add) that belong to file_path.
+
+    For funcs_to_modify we use function_index to filter by file; if no match
+    is found we fall back to the full list (so the LLM still has context).
+    For funcs_to_add we match on the in_file field.
+    """
+    all_mods = plan.get("functions_to_modify", [])
+    fp = file_path.replace("\\", "/")
+
+    if function_index:
+        file_mods = [
+            fn for fn in all_mods
+            if function_index.get(fn, {}).get("file", "").replace("\\", "/") == fp
+        ] or all_mods  # fallback: pass all when index has no match
+    else:
+        file_mods = all_mods
+
+    file_adds = [
+        fa.get("name", "")
+        for fa in plan.get("functions_to_add", [])
+        if fa.get("in_file", "").replace("\\", "/") == fp
+    ]
+    return file_mods, file_adds
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
 def implement_feature(
     plan: dict,
     project_root: str,
@@ -207,59 +303,75 @@ def implement_feature(
     """
     Call 2: Generate unified diffs for all affected source files.
 
+    Iterates over each source file individually to keep each LLM call small
+    and focused, preventing truncated or empty responses on large features.
+
     Args:
         plan: output from planner.plan_feature()
         project_root: absolute path to the C project root
         client: LLMClient instance
         model: model to use (empty string = use client default)
         function_index: optional function index for smart large-file extraction
+        struct_index: optional struct index for injecting struct definitions
 
     Returns:
-        Unified diff string (may be empty if no changes needed)
+        Concatenated unified diff string across all modified files.
     """
     model = model or client.default_model("main")
-    # Collect all affected .c files (not headers — those are handled in Call 3)
+
+    # Collect source files to process (exclude .h — handled in Call 3)
     source_files = [f for f in plan.get("affected_files", []) if not f.endswith(".h")]
-    # Also include files that need new functions
     for fn_add in plan.get("functions_to_add", []):
-        target_file = fn_add.get("in_file", "")
-        if target_file and target_file not in source_files:
-            source_files.append(target_file)
+        target = fn_add.get("in_file", "")
+        if target and not target.endswith(".h") and target not in source_files:
+            source_files.append(target)
 
-    # Build per-file function lists for smart large-file extraction
-    funcs_to_modify = plan.get("functions_to_modify", [])
-    funcs_to_add = [fn.get("name", "") for fn in plan.get("functions_to_add", [])]
-    all_plan_funcs = funcs_to_modify + funcs_to_add
-
-    def _relevant_funcs_for_file(file_path: str) -> list[str]:
-        if not function_index:
-            return all_plan_funcs
-        return [
-            fn for fn in all_plan_funcs
-            if function_index.get(fn, {}).get("file", "").replace("\\", "/")
-               == file_path.replace("\\", "/")
-        ] or all_plan_funcs  # fallback: pass all if no match found
-
-    files_content = [
-        _load_file_content(
-            f, project_root,
-            relevant_funcs=_relevant_funcs_for_file(f),
-            function_index=function_index,
-        )
-        for f in source_files
-    ]
-    files_block = _format_files_block(files_content)
-
-    # Build struct definitions block
+    # Pre-build the structs block (shared across all file calls)
     structs_block = _build_structs_block(plan, struct_index)
 
-    user_msg = USER_PROMPT_IMPL_TEMPLATE.format(
-        implementation_plan=plan.get("implementation_plan", ""),
-        structs_content=structs_block or "(none)",
-        files_content=files_block,
-    )
+    all_diffs: list[str] = []
+    print(f"[impl] {len(source_files)} source file(s) to process")
 
-    return client.chat(model=model, system=SYSTEM_PROMPT_IMPL, user=user_msg, max_tokens=8192).strip()
+    for idx, file_path in enumerate(source_files, 1):
+        print(f"  [{idx}/{len(source_files)}] {file_path} ...", end="", flush=True)
+
+        file_mods, file_adds = _file_specific_ops(file_path, plan, function_index)
+
+        _, content = _load_file_content(
+            file_path, project_root,
+            relevant_funcs=file_mods,
+            function_index=function_index,
+        )
+
+        if content:
+            file_content = f"=== {file_path} ===\n{content}"
+        else:
+            file_content = f"=== {file_path} (文件不存在，需要新建) ===\n(空文件)"
+
+        user_msg = USER_PROMPT_IMPL_FILE_TEMPLATE.format(
+            implementation_plan=plan.get("implementation_plan", ""),
+            file_path=file_path,
+            funcs_to_modify=", ".join(file_mods) or "(见实现计划)",
+            funcs_to_add=", ".join(file_adds) or "(无)",
+            structs_content=structs_block or "(none)",
+            file_content=file_content,
+        )
+
+        raw = client.chat(
+            model=model,
+            system=SYSTEM_PROMPT_IMPL_FILE,
+            user=user_msg,
+            max_tokens=8192,
+        ).strip()
+        diff = _strip_markdown_codeblock(raw)
+
+        if _is_valid_diff(diff):
+            all_diffs.append(diff)
+            print(f" {len(diff.splitlines())} lines")
+        else:
+            print(" (no changes)")
+
+    return "\n\n".join(all_diffs)
 
 
 def integrate_interfaces(
@@ -272,6 +384,9 @@ def integrate_interfaces(
     """
     Call 3 (for high-complexity features only): Check header files and
     cross-module interface consistency.
+
+    Iterates over each header file individually, passing the accumulated
+    source-file diffs as context.
 
     Args:
         plan: output from planner.plan_feature()
@@ -288,17 +403,76 @@ def integrate_interfaces(
     if not header_files:
         return ""
 
-    headers_content = [_load_file_content(h, project_root) for h in header_files]
-    headers_block = _format_files_block(headers_content)
+    all_diffs: list[str] = []
+    print(f"[impl] {len(header_files)} header file(s) to integrate")
 
-    user_msg = USER_PROMPT_INTEGRATE_TEMPLATE.format(
+    for idx, file_path in enumerate(header_files, 1):
+        print(f"  [{idx}/{len(header_files)}] {file_path} ...", end="", flush=True)
+
+        _, content = _load_file_content(file_path, project_root)
+        if content:
+            file_content = f"=== {file_path} ===\n{content}"
+        else:
+            file_content = f"=== {file_path} (文件不存在，需要新建) ===\n(空文件)"
+
+        user_msg = USER_PROMPT_INTEGRATE_FILE_TEMPLATE.format(
+            implementation_plan=plan.get("implementation_plan", ""),
+            existing_diff=existing_diff,
+            file_path=file_path,
+            file_content=file_content,
+        )
+
+        raw = client.chat(
+            model=model,
+            system=SYSTEM_PROMPT_INTEGRATE,
+            user=user_msg,
+            max_tokens=4096,
+        ).strip()
+        diff = _strip_markdown_codeblock(raw)
+
+        if _is_valid_diff(diff):
+            all_diffs.append(diff)
+            print(f" {len(diff.splitlines())} lines")
+        else:
+            print(" (no changes)")
+
+    return "\n\n".join(all_diffs)
+
+
+def fix_diff(
+    diff: str,
+    compile_errors: str,
+    plan: dict,
+    project_root: str,
+    client: LLMClient,
+    model: str = "",
+) -> str:
+    """
+    Ask the LLM to fix a diff that failed to compile.
+
+    Args:
+        diff: the current diff that produced compilation errors
+        compile_errors: error messages from the compiler (pre-filtered)
+        plan: the implementation plan for context
+        project_root: absolute path to the C project root (unused, reserved)
+        client: LLMClient instance
+        model: model to use (empty string = use client default)
+
+    Returns:
+        A revised diff that hopefully resolves the compilation errors.
+    """
+    model = model or client.default_model("main")
+
+    user_msg = USER_PROMPT_FIX_TEMPLATE.format(
         implementation_plan=plan.get("implementation_plan", ""),
-        existing_diff=existing_diff,
-        headers_content=headers_block,
+        diff=diff,
+        compile_errors=compile_errors,
     )
 
-    result = client.chat(model=model, system=SYSTEM_PROMPT_INTEGRATE, user=user_msg, max_tokens=4096).strip()
-    # If LLM says "no changes needed" in prose, return empty
-    if len(result) < 20 and not result.startswith("---"):
-        return ""
-    return result
+    raw = client.chat(
+        model=model,
+        system=SYSTEM_PROMPT_FIX,
+        user=user_msg,
+        max_tokens=8192,
+    ).strip()
+    return _strip_markdown_codeblock(raw)
