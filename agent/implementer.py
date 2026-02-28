@@ -69,30 +69,32 @@ SYSTEM_PROMPT_FIX = """\
 # User prompt templates
 # ---------------------------------------------------------------------------
 
-USER_PROMPT_IMPL_FILE_TEMPLATE = """\
-## 总体实现计划
-{implementation_plan}
+USER_PROMPT_IMPL_STEP_TEMPLATE = """\
+## 整体特性概要
+{feature_summary}
 
-## 当前任务：处理文件 `{file_path}`
+## 当前步骤 [{step_index}/{step_total}]
+{step_description}
+
 - 需要修改的函数：{funcs_to_modify}
 - 需要新增的函数：{funcs_to_add}
 
 ## 相关结构体 / 联合体 / 枚举定义
 {structs_content}
 
-## 文件相关代码片段（带行号）
+## 相关代码片段（带行号）
 {file_content}
 
-请根据实现计划，生成 `{file_path}` 的 unified diff。
-行号已在代码片段中标注（格式 "  NNN: 代码行"），请用这些行号生成正确的 @@ 标记。
-如该文件无需修改，输出空字符串。
+请根据当前步骤的要求生成 unified diff。
+代码片段中每行前的数字是该行在文件中的真实行号，请用这些行号生成正确的 @@ 标记。
+如该步骤无需代码改动，输出空字符串。
 """
 
 USER_PROMPT_INTEGRATE_FILE_TEMPLATE = """\
-## 实现计划
+## 实现计划步骤摘要
 {implementation_plan}
 
-## 已生成的源文件修改（Call 2 的输出，供参考）
+## 已生成的源文件修改（供参考）
 {existing_diff}
 
 ## 当前头文件相关片段（带行号）
@@ -103,7 +105,7 @@ USER_PROMPT_INTEGRATE_FILE_TEMPLATE = """\
 """
 
 USER_PROMPT_FIX_TEMPLATE = """\
-## 实现计划
+## 实现计划步骤摘要
 {implementation_plan}
 
 ## 当前 diff（编译失败）
@@ -340,52 +342,59 @@ def _build_structs_block(plan: dict, struct_index: Optional[dict]) -> str:
     return "\n\n".join(parts)
 
 
-def _build_file_tasks(
-    plan: dict,
+def _load_step_snippets(
+    step: dict,
+    project_root: str,
     function_index: Optional[dict],
-) -> dict[str, dict]:
+    context_lines: int = FUNC_CONTEXT_LINES,
+) -> str:
     """
-    Build a mapping {file_path: {"mods": [...], "adds": [...]}} from the plan.
+    Collect all code snippets needed for a single plan step.
 
-    - functions_to_modify: resolved to their source file via function_index
-      (falls back to affected_files when index is unavailable)
-    - functions_to_add:    resolved via plan["functions_to_add"][i]["in_file"]
-    - new_files:           added with empty mods/adds so new-file diffs are generated
+    Groups the step's functions_to_modify and functions_to_add by file,
+    then calls _load_function_snippets for each file involved.
+
+    Returns a combined snippet string across all files in the step.
     """
-    file_tasks: dict[str, dict] = {}
+    funcs_to_modify = step.get("functions_to_modify", [])
+    funcs_to_add = step.get("functions_to_add", [])
 
-    def _ensure(fp: str) -> dict:
-        if fp not in file_tasks:
-            file_tasks[fp] = {"mods": [], "adds": []}
-        return file_tasks[fp]
+    if not function_index:
+        # No index: return a placeholder
+        return "(function_index not available — cannot extract targeted snippets)"
 
-    # functions_to_modify → resolved file via function_index
-    if function_index:
-        for func_name in plan.get("functions_to_modify", []):
-            fp = function_index.get(func_name, {}).get("file", "").replace("\\", "/")
-            if fp:
-                _ensure(fp)["mods"].append(func_name)
-            # if not found in index, silently skip (unknown location)
-    else:
-        # No index: fall back to affected_files, assign all mods to each file
-        all_mods = plan.get("functions_to_modify", [])
-        for f in plan.get("affected_files", []):
-            if not f.endswith(".h"):
-                _ensure(f.replace("\\", "/"))["mods"].extend(all_mods)
+    # Group by file
+    file_mods: dict[str, list[str]] = {}
+    file_adds: dict[str, list[str]] = {}
 
-    # functions_to_add → resolved via in_file
-    for fn_add in plan.get("functions_to_add", []):
+    for func_name in funcs_to_modify:
+        fp = function_index.get(func_name, {}).get("file", "").replace("\\", "/")
+        if fp:
+            file_mods.setdefault(fp, []).append(func_name)
+
+    for fn_add in funcs_to_add:
         fp = fn_add.get("in_file", "").replace("\\", "/")
-        if fp and not fp.endswith(".h"):
-            _ensure(fp)["adds"].append(fn_add.get("name", ""))
+        name = fn_add.get("name", "")
+        if fp and name:
+            file_adds.setdefault(fp, []).append(name)
 
-    # new source files (may have no functions yet)
-    for new_file in plan.get("new_files", []):
-        fp = new_file.replace("\\", "/")
-        if not fp.endswith(".h"):
-            _ensure(fp)
+    all_fps = sorted(set(file_mods) | set(file_adds))
 
-    return file_tasks
+    if not all_fps:
+        return "(no functions located in index for this step)"
+
+    parts = []
+    for fp in all_fps:
+        snippet = _load_function_snippets(
+            fp, project_root,
+            funcs_to_modify=file_mods.get(fp, []),
+            funcs_to_add=file_adds.get(fp, []),
+            function_index=function_index,
+            context_lines=context_lines,
+        )
+        parts.append(snippet)
+
+    return "\n\n".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -401,11 +410,11 @@ def implement_feature(
     struct_index: Optional[dict] = None,
 ) -> str:
     """
-    Call 2: Generate unified diffs for all affected source files.
+    Call 2: Generate unified diffs step by step.
 
-    One LLM call per source file. Each call receives only the specific
-    function bodies and struct definitions relevant to that file, with line
-    numbers so the LLM can produce accurate diff hunks.
+    Iterates over plan["steps"] (each step = one atomic code change).
+    For each step, retrieves only the function bodies involved in that step
+    (via function_index), then makes one LLM call to produce the diff.
 
     Args:
         plan: output from planner.plan_feature()
@@ -416,53 +425,62 @@ def implement_feature(
         struct_index: preprocessed struct/union/enum index
 
     Returns:
-        Concatenated unified diff string across all modified files.
+        Concatenated unified diff string across all steps.
     """
     model = model or client.default_model("main")
+    steps = plan.get("steps", [])
 
-    # Build {file_path: {mods, adds}} from plan's function lists (not affected_files)
-    file_tasks = _build_file_tasks(plan, function_index)
-
-    if not file_tasks:
-        print("[impl] no source files to process")
+    if not steps:
+        print("[impl] plan has no steps to process")
         return ""
 
-    # Pre-build the structs block — shared across all per-file calls
+    # Build a short feature summary from step descriptions for context
+    feature_summary = "\n".join(
+        f"  {i}. {s.get('description', '')}"
+        for i, s in enumerate(steps, 1)
+    )
+
+    # Pre-build the structs block — shared across all step calls
     structs_block = _build_structs_block(plan, struct_index)
 
     all_diffs: list[str] = []
-    file_list = list(file_tasks.items())
-    print(f"[impl] {len(file_list)} source file(s) to process")
+    print(f"[impl] {len(steps)} step(s) to process")
 
-    for idx, (file_path, tasks) in enumerate(file_list, 1):
-        file_mods = tasks["mods"]
-        file_adds = tasks["adds"]
+    for idx, step in enumerate(steps, 1):
+        desc = step.get("description", f"Step {idx}")
+        step_mods = step.get("functions_to_modify", [])
+        step_adds = step.get("functions_to_add", [])
+        add_names = [fa.get("name", "") for fa in step_adds]
+
         print(
-            f"  [{idx}/{len(file_list)}] {file_path}"
-            f"  (modify: {len(file_mods)}, add: {len(file_adds)}) ...",
+            f"  [{idx}/{len(steps)}] {desc[:70]}"
+            f"  (modify: {len(step_mods)}, add: {len(add_names)}) ...",
             end="", flush=True,
         )
 
-        # Use targeted snippet extraction when function_index is available;
-        # fall back to character-limited full-file loading otherwise.
+        # Load code snippets for all functions involved in this step
         if function_index:
-            file_content = _load_function_snippets(
-                file_path, project_root,
-                funcs_to_modify=file_mods,
-                funcs_to_add=file_adds,
-                function_index=function_index,
+            file_content = _load_step_snippets(
+                step, project_root, function_index,
             )
         else:
-            _, raw = _load_file_content(file_path, project_root,
-                                        relevant_funcs=file_mods)
-            file_content = f"=== {file_path} ===\n{raw}" if raw else \
-                           f"(文件不存在，需要新建: {file_path})"
+            # Fallback: show first 100 lines of each affected file
+            affected = plan.get("affected_files", [])
+            parts = []
+            for fpath in affected:
+                if not fpath.endswith(".h"):
+                    _, raw = _load_file_content(fpath, project_root)
+                    if raw:
+                        parts.append(f"=== {fpath} ===\n{raw[:5000]}")
+            file_content = "\n\n".join(parts) or "(no files found)"
 
-        user_msg = USER_PROMPT_IMPL_FILE_TEMPLATE.format(
-            implementation_plan=plan.get("implementation_plan", ""),
-            file_path=file_path,
-            funcs_to_modify=", ".join(file_mods) or "(见实现计划)",
-            funcs_to_add=", ".join(file_adds) or "(无)",
+        user_msg = USER_PROMPT_IMPL_STEP_TEMPLATE.format(
+            feature_summary=feature_summary,
+            step_index=idx,
+            step_total=len(steps),
+            step_description=desc,
+            funcs_to_modify=", ".join(step_mods) or "(无)",
+            funcs_to_add=", ".join(add_names) or "(无)",
             structs_content=structs_block or "(none)",
             file_content=file_content,
         )
@@ -525,8 +543,12 @@ def integrate_interfaces(
         else:
             file_content = f"=== {file_path} (文件不存在，需要新建) ===\n(空文件)"
 
+        steps_summary = "\n".join(
+            f"  {i}. {s.get('description', '')}"
+            for i, s in enumerate(plan.get("steps", []), 1)
+        ) or "(no steps)"
         user_msg = USER_PROMPT_INTEGRATE_FILE_TEMPLATE.format(
-            implementation_plan=plan.get("implementation_plan", ""),
+            implementation_plan=steps_summary,
             existing_diff=existing_diff,
             file_path=file_path,
             file_content=file_content,
@@ -573,8 +595,12 @@ def fix_diff(
     """
     model = model or client.default_model("main")
 
+    steps_summary = "\n".join(
+        f"  {i}. {s.get('description', '')}"
+        for i, s in enumerate(plan.get("steps", []), 1)
+    ) or "(no steps)"
     user_msg = USER_PROMPT_FIX_TEMPLATE.format(
-        implementation_plan=plan.get("implementation_plan", ""),
+        implementation_plan=steps_summary,
         diff=diff,
         compile_errors=compile_errors,
     )

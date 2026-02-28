@@ -4,9 +4,8 @@ Call 1: Planning agent.
 Takes the feature description + retrieved candidate functions + project overview
 and outputs a structured implementation plan:
   - affected files
-  - functions to modify / add
-  - new files needed
-  - step-by-step implementation plan
+  - new files / header changes
+  - ordered steps (each step: description + functions_to_modify + functions_to_add)
   - complexity level (medium/high)
 """
 
@@ -25,23 +24,7 @@ PLAN_JSON_SCHEMA = {
         "affected_files": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "File names only (no directory path), e.g. 'build.c'",
-        },
-        "functions_to_modify": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "Existing function names to modify (at most 10 most critical, no duplicates)",
-        },
-        "functions_to_add": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "in_file": {"type": "string", "description": "File name only, no path"},
-                },
-                "required": ["name", "in_file"],
-            },
+            "description": "All file names touched by this feature (no directory path), e.g. 'build.c'",
         },
         "new_files": {
             "type": "array",
@@ -58,15 +41,41 @@ PLAN_JSON_SCHEMA = {
             "items": {"type": "string"},
             "description": "Names of structs/unions/enums whose definitions are needed for implementation (choose from the Available Structs list; empty list if none)",
         },
-        "implementation_plan": {
-            "type": "string",
-            "description": "Step-by-step implementation instructions, specific down to the function level",
+        "steps": {
+            "type": "array",
+            "description": "Ordered list of implementation steps. Each step is an atomic code change.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string",
+                        "description": "Concrete description of what this step implements, specific down to the function level",
+                    },
+                    "functions_to_modify": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Existing function names to modify in this step (no duplicates)",
+                    },
+                    "functions_to_add": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "in_file": {"type": "string", "description": "File name only, no path"},
+                            },
+                            "required": ["name", "in_file"],
+                        },
+                        "description": "New functions to add in this step",
+                    },
+                },
+                "required": ["description", "functions_to_modify", "functions_to_add"],
+            },
         },
     },
     "required": [
-        "complexity", "affected_files", "functions_to_modify",
-        "functions_to_add", "new_files", "header_changes",
-        "relevant_structs", "implementation_plan",
+        "complexity", "affected_files", "new_files", "header_changes",
+        "relevant_structs", "steps",
     ],
 }
 
@@ -95,11 +104,13 @@ USER_PROMPT_TEMPLATE = """\
 Produce an implementation plan in JSON format based on the feature description and candidate functions above.
 
 Guidelines:
-- affected_files: file names only (e.g. build.c), no directory paths
-- functions_to_modify: at most 10 most critical existing functions, no duplicates
+- affected_files: all file names touched (e.g. build.c), no directory paths
+- steps: break the work into ordered atomic steps; each step must specify:
+    - description: what this step does, concrete and function-level specific
+    - functions_to_modify: existing functions changed in THIS step only
+    - functions_to_add: new functions introduced in THIS step only
 - If a function signature changes, include the corresponding header in header_changes
-- relevant_structs: list struct/union/enum names (from Available Structs above) whose definitions the implementer will need; empty list if none
-- implementation_plan: concrete steps down to the function level
+- relevant_structs: struct/union/enum names (from Available Structs above) needed by the implementer
 """
 
 REFINE_USER_PROMPT_TEMPLATE = """\
@@ -127,41 +138,43 @@ def _strip_src_prefix(path: str) -> str:
     return path
 
 
+def _normalize_step(step: dict) -> dict:
+    """Normalize a single step dict: fix types, strip src/ prefixes, deduplicate."""
+    # functions_to_modify: flatten nested lists, deduplicate
+    seen: set = set()
+    deduped = []
+    for fn in step.get("functions_to_modify", []):
+        if isinstance(fn, list):
+            fn = fn[0] if fn else ""
+        fn = str(fn).strip()
+        if fn and fn not in seen:
+            seen.add(fn)
+            deduped.append(fn)
+    step["functions_to_modify"] = deduped
+
+    # functions_to_add: strip src/ prefix from in_file
+    for fn_add in step.get("functions_to_add", []):
+        if "in_file" in fn_add:
+            fn_add["in_file"] = _strip_src_prefix(str(fn_add["in_file"]))
+
+    # description: ensure string
+    if not isinstance(step.get("description"), str):
+        step["description"] = str(step.get("description", ""))
+
+    return step
+
 
 def _normalize_plan(plan: dict) -> dict:
     """
     Post-process the plan dict to fix common LLM output issues:
     - Strip src/ prefix from file paths
-    - Deduplicate functions_to_modify
-    - Limit list sizes to avoid noise
+    - Normalize each step
+    - Ensure required fields exist
     """
     if "affected_files" in plan:
         plan["affected_files"] = list(dict.fromkeys(
             _strip_src_prefix(f) for f in plan["affected_files"]
         ))
-
-    if "functions_to_modify" in plan:
-        # Flatten any nested lists and deduplicate while preserving order
-        seen = set()
-        deduped = []
-        for fn in plan["functions_to_modify"]:
-            if isinstance(fn, list):
-                fn = fn[0] if fn else ""
-            fn = str(fn)
-            if fn and fn not in seen:
-                seen.add(fn)
-                deduped.append(fn)
-        plan["functions_to_modify"] = deduped[:20]  # cap at 20
-
-    if "implementation_plan" in plan:
-        ip = plan["implementation_plan"]
-        if isinstance(ip, list):
-            plan["implementation_plan"] = "\n".join(str(item) for item in ip)
-
-    if "functions_to_add" in plan:
-        for fn_add in plan["functions_to_add"]:
-            if "in_file" in fn_add:
-                fn_add["in_file"] = _strip_src_prefix(fn_add["in_file"])
 
     if "new_files" in plan:
         plan["new_files"] = [_strip_src_prefix(f) for f in plan["new_files"]]
@@ -170,6 +183,32 @@ def _normalize_plan(plan: dict) -> dict:
         plan["header_changes"] = list(dict.fromkeys(
             _strip_src_prefix(f) for f in plan["header_changes"]
         ))
+
+    # Normalize each step
+    steps = plan.get("steps", [])
+    if isinstance(steps, list):
+        plan["steps"] = [_normalize_step(s) for s in steps if isinstance(s, dict)]
+    else:
+        plan["steps"] = []
+
+    # Back-compat: derive top-level functions_to_modify / functions_to_add
+    # so callers that still read these fields continue to work.
+    all_mods: list = []
+    seen_mods: set = set()
+    all_adds: list = []
+    seen_adds: set = set()
+    for step in plan["steps"]:
+        for fn in step.get("functions_to_modify", []):
+            if fn not in seen_mods:
+                seen_mods.add(fn)
+                all_mods.append(fn)
+        for fa in step.get("functions_to_add", []):
+            key = fa.get("name", "")
+            if key and key not in seen_adds:
+                seen_adds.add(key)
+                all_adds.append(fa)
+    plan["functions_to_modify"] = all_mods
+    plan["functions_to_add"] = all_adds
 
     return plan
 
@@ -196,17 +235,10 @@ def plan_feature(
     """
     Call the LLM to produce an implementation plan.
 
-    Args:
-        feature_desc: user's feature description
-        candidates_text: formatted candidate functions (from layer3_callgraph.format_candidates_for_prompt)
-        project_overview: contents of project_overview.md
-        callchains_text: formatted call chains (from callchain_builder.format_callchains_for_prompt)
-        client: LLMClient instance
-        model: model to use (empty string = use client default)
-
     Returns:
-        Parsed plan dict with keys: complexity, affected_files, functions_to_modify,
-        functions_to_add, new_files, header_changes, implementation_plan
+        Parsed plan dict with keys: complexity, affected_files, new_files,
+        header_changes, relevant_structs, steps (+ derived functions_to_modify /
+        functions_to_add for backward compatibility)
     """
     model = model or client.default_model("main")
 
@@ -234,12 +266,12 @@ def plan_feature(
         return {
             "complexity": "unknown",
             "affected_files": [],
-            "functions_to_modify": [],
-            "functions_to_add": [],
             "new_files": [],
             "header_changes": [],
             "relevant_structs": [],
-            "implementation_plan": "(structured output failed)",
+            "steps": [],
+            "functions_to_modify": [],
+            "functions_to_add": [],
             "_parse_error": True,
         }
 
@@ -257,15 +289,6 @@ def plan_feature_with_feedback(
 ) -> dict:
     """
     Re-run planning with user feedback to refine the previous plan.
-
-    Args:
-        feature_desc: original feature description
-        project_overview: contents of project_overview.md
-        callchains_text: formatted call chains
-        client: LLMClient instance
-        feedback: user's revision instructions
-        prev_plan: the plan dict produced by the previous planning call
-        model: model to use (empty string = use client default)
 
     Returns:
         Revised plan dict (falls back to prev_plan if the LLM call fails)
@@ -307,15 +330,6 @@ def format_plan_for_display(plan: dict) -> str:
     affected = plan.get("affected_files", [])
     lines.append(f"Affected files ({len(affected)}): {', '.join(affected) or '(none)'}")
 
-    mods = plan.get("functions_to_modify", [])
-    lines.append(f"Modify ({len(mods)}): {', '.join(mods) or '(none)'}")
-
-    adds = plan.get("functions_to_add", [])
-    if adds:
-        lines.append(f"Add ({len(adds)}):")
-        for fa in adds:
-            lines.append(f"  + {fa.get('name', '?')}  in {fa.get('in_file', '?')}")
-
     new_files = plan.get("new_files", [])
     if new_files:
         lines.append(f"New files    : {', '.join(new_files)}")
@@ -328,11 +342,17 @@ def format_plan_for_display(plan: dict) -> str:
     if structs:
         lines.append(f"Relevant structs: {', '.join(structs)}")
 
-    lines.append("")
-    lines.append("Steps:")
-    impl = plan.get("implementation_plan", "(empty)")
-    if isinstance(impl, list):
-        impl = "\n".join(str(item) for item in impl)
-    lines.append(str(impl))
+    steps = plan.get("steps", [])
+    lines.append(f"\nSteps ({len(steps)}):")
+    for i, step in enumerate(steps, 1):
+        desc = step.get("description", "(no description)")
+        mods = step.get("functions_to_modify", [])
+        adds = [fa.get("name", "?") for fa in step.get("functions_to_add", [])]
+        lines.append(f"  {i}. {desc}")
+        if mods:
+            lines.append(f"     modify : {', '.join(mods)}")
+        if adds:
+            lines.append(f"     add    : {', '.join(adds)}")
+
     lines.append("=" * 60)
     return "\n".join(lines)
