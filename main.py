@@ -362,14 +362,22 @@ def cmd_generate(args, client: LLMClient):
         print("[agent] Call 3: integrating interfaces (high complexity feature) ...")
         diff_headers = integrate_interfaces(plan, diff_main, project_root, client, model=args.model)
 
-    # --- Output ---
+    # --- Determine output paths ---
     if args.output:
         output_path = args.output
+        plan_path = output_path.rsplit(".", 1)[0] + ".plan.json"
     elif args.diff_name:
         output_path = os.path.join(cache_dir, f"{args.diff_name}.diff")
+        plan_path = os.path.join(cache_dir, f"{args.diff_name}.plan.json")
     else:
         safe_name = feature_desc[:20].replace(" ", "_").replace("/", "_")
         output_path = os.path.join(cache_dir, f"output_{safe_name}.diff")
+        plan_path = os.path.join(cache_dir, f"output_{safe_name}.plan.json")
+
+    # Save plan JSON (useful for standalone --review later)
+    with open(plan_path, "w", encoding="utf-8") as f:
+        json.dump(plan, f, ensure_ascii=False, indent=2)
+    print(f"[main] Plan saved to: {plan_path}")
 
     full_diff = diff_main
     if diff_headers:
@@ -413,6 +421,59 @@ def cmd_generate(args, client: LLMClient):
     # Also print plan summary
     print("\n=== Implementation Plan ===")
     print(format_plan_for_display(plan))
+
+
+# ---------------------------------------------------------------------------
+# review command
+# ---------------------------------------------------------------------------
+
+def cmd_review(args, client):
+    """
+    Standalone diff review + refine.
+
+    Loads an existing plan JSON and diff file, runs the LLM review+refine
+    loop, and writes the (possibly improved) diff to --output.
+
+    This avoids re-running the full generate pipeline when the diff only
+    needs post-generation review / completion.
+    """
+    # Load plan
+    plan_path = args.plan
+    if not os.path.exists(plan_path):
+        print(f"[error] Plan file not found: {plan_path}")
+        sys.exit(1)
+    with open(plan_path, "r", encoding="utf-8") as f:
+        plan = json.load(f)
+
+    # Load diff
+    diff_path = args.diff
+    if not os.path.exists(diff_path):
+        print(f"[error] Diff file not found: {diff_path}")
+        sys.exit(1)
+    with open(diff_path, "r", encoding="utf-8") as f:
+        diff = f.read()
+
+    output_path = args.output or diff_path
+    review_rounds = args.review_rounds
+
+    print(f"[review] Plan : {plan_path}")
+    print(f"[review] Diff : {diff_path}  ({len(diff.splitlines())} lines)")
+    print(f"[review] Rounds: {review_rounds}")
+    print(format_plan_for_display(plan))
+
+    refined = review_and_refine_diff(
+        diff=diff,
+        plan=plan,
+        client=client,
+        model=args.model,
+        max_rounds=review_rounds,
+    )
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(refined)
+
+    print(f"\n[review] Done. Refined diff written to: {output_path}")
+    print(f"         Apply with: patch -p1 --fuzz=5 < {output_path}")
 
 
 # ---------------------------------------------------------------------------
@@ -504,6 +565,22 @@ def main():
     gen.add_argument("--review-rounds", type=int, default=0,
                      help="Number of LLM review+refine cycles after code generation (0 = disabled, default: 0)")
 
+    # --- review command ---
+    rev = sub.add_parser(
+        "review",
+        help="Review and refine an existing diff against its plan (no re-generation)"
+    )
+    rev.add_argument("--plan", required=True,
+                     help="Path to the plan JSON file (e.g. <cache-dir>/<name>.plan.json)")
+    rev.add_argument("--diff", required=True,
+                     help="Path to the diff file to review and refine")
+    rev.add_argument("--output", default=None,
+                     help="Output path for the refined diff (default: overwrites --diff)")
+    rev.add_argument("--review-rounds", type=int, default=2,
+                     help="Number of LLM review+refine cycles (default: 2)")
+    rev.add_argument("--model", default="",
+                     help="Model for review (default: provider's main default)")
+
     args = parser.parse_args()
 
     # --- Build LLM client ---
@@ -520,6 +597,8 @@ def main():
         cmd_preprocess(args, client)
     elif args.command == "generate":
         cmd_generate(args, client)
+    elif args.command == "review":
+        cmd_review(args, client)
 
 
 if __name__ == "__main__":

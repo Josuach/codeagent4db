@@ -146,7 +146,7 @@ USER_PROMPT_REVIEW_TEMPLATE = """\
 ## 生成的 diff
 {diff}
 
-请逐步检查上述 diff 是否完整实现了每个计划步骤，输出审查结果。
+请逐步检查上述 diff 是否完整实现了每个计划步骤，以 JSON 格式输出审查结果。
 """
 
 USER_PROMPT_REFINE_TEMPLATE = """\
