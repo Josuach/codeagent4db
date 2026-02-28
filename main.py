@@ -66,7 +66,7 @@ from retrieval.layer2_bm25 import bm25_search_scoped
 from retrieval.layer3_callgraph import expand_with_callgraph, format_candidates_for_prompt
 
 from agent.planner import plan_feature, plan_feature_with_feedback, format_plan_for_display
-from agent.implementer import implement_feature, integrate_interfaces
+from agent.implementer import implement_feature, integrate_interfaces, review_and_refine_diff
 from agent.checker import compile_check_and_fix
 
 
@@ -375,6 +375,18 @@ def cmd_generate(args, client: LLMClient):
     if diff_headers:
         full_diff = full_diff + "\n\n" + diff_headers
 
+    # --- LLM review + refine loop ---
+    review_rounds = getattr(args, "review_rounds", 0)
+    if review_rounds > 0 and full_diff:
+        print(f"\n[agent] Review: checking diff completeness ({review_rounds} round(s)) ...")
+        full_diff = review_and_refine_diff(
+            diff=full_diff,
+            plan=plan,
+            client=client,
+            model=args.model,
+            max_rounds=review_rounds,
+        )
+
     # --- Optional compile check ---
     if getattr(args, "compile_check", False):
         print("\n[checker] Running compile check ...")
@@ -400,7 +412,7 @@ def cmd_generate(args, client: LLMClient):
 
     # Also print plan summary
     print("\n=== Implementation Plan ===")
-    print(plan.get("implementation_plan", ""))
+    print(format_plan_for_display(plan))
 
 
 # ---------------------------------------------------------------------------
@@ -489,6 +501,8 @@ def main():
                           "if empty, tries 'make' then falls back to compiling .c files with gcc")
     gen.add_argument("--no-interactive", action="store_true",
                      help="Skip the interactive plan review step and proceed directly to implementation")
+    gen.add_argument("--review-rounds", type=int, default=0,
+                     help="Number of LLM review+refine cycles after code generation (0 = disabled, default: 0)")
 
     args = parser.parse_args()
 

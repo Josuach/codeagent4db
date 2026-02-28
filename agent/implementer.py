@@ -64,6 +64,28 @@ SYSTEM_PROMPT_FIX = """\
 - diff 必须可以直接用 patch -p1 应用
 """
 
+SYSTEM_PROMPT_REVIEW = """\
+你是一名资深 C 语言数据库内核工程师，负责代码 diff 审查。
+你的任务是逐步检查生成的 unified diff 是否完整、正确地实现了计划中的每个步骤。
+
+审查重点：
+1. 每个计划步骤是否在 diff 中有对应的实际代码改动
+2. 新增函数是否有完整逻辑实现（不能是空桩或 TODO 占位符）
+3. 修改的函数是否真正实现了步骤所描述的功能
+4. 函数签名、返回值、错误处理是否合理
+5. 跨步骤的依赖关系是否一致（如新函数被正确调用）
+"""
+
+SYSTEM_PROMPT_REFINE = """\
+你是一名资深 C 语言数据库内核工程师。
+根据审查意见，补全并修正 unified diff，使其完整实现所有计划步骤。
+
+输出规范：
+- 只输出修正后的完整 unified diff，不输出任何解释文字
+- diff 必须可以直接用 patch -p1 应用
+- 保留原有正确的修改，只补充缺失或修正错误的部分
+"""
+
 
 # ---------------------------------------------------------------------------
 # User prompt templates
@@ -116,6 +138,55 @@ USER_PROMPT_FIX_TEMPLATE = """\
 
 请修复上述编译错误，输出修复后的完整 unified diff。
 """
+
+USER_PROMPT_REVIEW_TEMPLATE = """\
+## 实现计划（共 {step_total} 步）
+{steps_list}
+
+## 生成的 diff
+{diff}
+
+请逐步检查上述 diff 是否完整实现了每个计划步骤，输出审查结果。
+"""
+
+USER_PROMPT_REFINE_TEMPLATE = """\
+## 实现计划（共 {step_total} 步）
+{steps_list}
+
+## 当前 diff（审查未通过）
+{diff}
+
+## 审查意见
+{issues}
+
+## 尚未实现的步骤
+{unimplemented_steps}
+
+请输出补全修正后的完整 unified diff。
+"""
+
+# JSON schema for structured review output
+_REVIEW_SCHEMA_NAME = "diff_review"
+_REVIEW_JSON_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "approved": {
+            "type": "boolean",
+            "description": "True if the diff correctly and completely implements all required steps",
+        },
+        "issues": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "List of concrete issues found (empty list if approved)",
+        },
+        "unimplemented_steps": {
+            "type": "array",
+            "items": {"type": "integer"},
+            "description": "1-based indices of plan steps not yet implemented in the diff",
+        },
+    },
+    "required": ["approved", "issues", "unimplemented_steps"],
+}
 
 
 # ---------------------------------------------------------------------------
@@ -612,3 +683,127 @@ def fix_diff(
         max_tokens=8192,
     ).strip()
     return _strip_markdown_codeblock(raw)
+
+
+# Max characters of diff sent to the review prompt (avoid overwhelming context).
+_REVIEW_DIFF_CHARS = 40000
+
+
+def review_and_refine_diff(
+    diff: str,
+    plan: dict,
+    client: LLMClient,
+    model: str = "",
+    max_rounds: int = 1,
+) -> str:
+    """
+    Post-generation LLM review loop.
+
+    After implement_feature() produces a diff, this function:
+      1. Asks the LLM to review the diff against the plan steps.
+      2. If the review finds issues, asks the LLM to produce a corrected diff.
+      3. Repeats up to max_rounds times.
+
+    Args:
+        diff:       The combined unified diff from Call 2 (+ Call 3 if any).
+        plan:       The implementation plan dict.
+        client:     LLMClient instance.
+        model:      Model to use (empty = client default).
+        max_rounds: Maximum number of review+refine cycles (0 = skip review).
+
+    Returns:
+        The final (possibly refined) diff string.
+    """
+    if max_rounds <= 0 or not diff:
+        return diff
+
+    model = model or client.default_model("main")
+    steps = plan.get("steps", [])
+
+    steps_list = "\n".join(
+        f"  {i}. {s.get('description', '')}"
+        for i, s in enumerate(steps, 1)
+    )
+
+    current_diff = diff
+
+    for round_num in range(1, max_rounds + 1):
+        print(f"[review] Round {round_num}/{max_rounds}: reviewing diff ...", flush=True)
+
+        # Truncate diff if too large for review prompt
+        diff_for_prompt = current_diff
+        if len(diff_for_prompt) > _REVIEW_DIFF_CHARS:
+            diff_for_prompt = (
+                current_diff[:_REVIEW_DIFF_CHARS]
+                + f"\n\n/* ... diff truncated at {_REVIEW_DIFF_CHARS} chars for review ... */"
+            )
+
+        review_user = USER_PROMPT_REVIEW_TEMPLATE.format(
+            step_total=len(steps),
+            steps_list=steps_list,
+            diff=diff_for_prompt,
+        )
+
+        review = client.chat_structured(
+            model=model,
+            system=SYSTEM_PROMPT_REVIEW,
+            user=review_user,
+            max_tokens=4096,
+            schema_name=_REVIEW_SCHEMA_NAME,
+            json_schema=_REVIEW_JSON_SCHEMA,
+        )
+
+        if not review:
+            print("[review] Review returned empty result; stopping review loop.")
+            break
+
+        approved = review.get("approved", False)
+        issues = review.get("issues", [])
+        unimplemented = review.get("unimplemented_steps", [])
+
+        status = "APPROVED" if approved else f"NOT APPROVED ({len(issues)} issue(s))"
+        print(f"[review] {status}  unimplemented steps: {unimplemented or '(none)'}")
+        for issue in issues:
+            print(f"         - {issue}")
+
+        if approved:
+            break
+
+        if round_num >= max_rounds:
+            print("[review] Max rounds reached; using current diff.")
+            break
+
+        # --- Refine ---
+        print(f"[review] Refining diff ...", flush=True)
+
+        issues_text = "\n".join(f"- {iss}" for iss in issues) or "(none listed)"
+        unimpl_text = "\n".join(
+            f"- Step {i}: {steps[i - 1].get('description', '')}"
+            for i in unimplemented
+            if 1 <= i <= len(steps)
+        ) or "(none)"
+
+        refine_user = USER_PROMPT_REFINE_TEMPLATE.format(
+            step_total=len(steps),
+            steps_list=steps_list,
+            diff=diff_for_prompt,
+            issues=issues_text,
+            unimplemented_steps=unimpl_text,
+        )
+
+        raw = client.chat(
+            model=model,
+            system=SYSTEM_PROMPT_REFINE,
+            user=refine_user,
+            max_tokens=8192,
+        ).strip()
+        refined = _strip_markdown_codeblock(raw)
+
+        if _is_valid_diff(refined):
+            current_diff = refined
+            print(f"[review] Refined diff: {len(refined.splitlines())} lines")
+        else:
+            print("[review] Refinement produced no valid diff; keeping current.")
+            break
+
+    return current_diff
