@@ -152,10 +152,17 @@ def _normalize_step(step: dict) -> dict:
             deduped.append(fn)
     step["functions_to_modify"] = deduped
 
-    # functions_to_add: strip src/ prefix from in_file
+    # functions_to_add: coerce strings → {name, in_file=""}, strip src/ prefix
+    normalized_adds = []
     for fn_add in step.get("functions_to_add", []):
+        if isinstance(fn_add, str):
+            fn_add = {"name": fn_add.strip(), "in_file": ""}
+        elif not isinstance(fn_add, dict):
+            continue
         if "in_file" in fn_add:
             fn_add["in_file"] = _strip_src_prefix(str(fn_add["in_file"]))
+        normalized_adds.append(fn_add)
+    step["functions_to_add"] = normalized_adds
 
     # description: ensure string
     if not isinstance(step.get("description"), str):
