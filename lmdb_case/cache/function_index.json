@@ -1,0 +1,4247 @@
+{
+  "mdb_sem_wait": {
+    "file": "mdb.c",
+    "signature": "#endif #ifdef __GLIBC__ #define GL",
+    "start_line": 359,
+    "end_line": 365,
+    "summary": "等待信号量，用于线程同步",
+    "subsystem": "lock",
+    "scenario": "被锁管理相关函数调用，用于实现读写锁的互斥访问",
+    "data_structures": [],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_version": {
+    "file": "mdb.c",
+    "signature": "* This is recorded here only for convenience; the value can",
+    "start_line": 1495,
+    "end_line": 1502,
+    "summary": "返回LMDB库的版本信息",
+    "subsystem": "catalog",
+    "scenario": "被应用程序调用，用于查询和验证数据库库版本",
+    "data_structures": [],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_strerror": {
+    "file": "mdb.c",
+    "signature": "trs[] entries referring to th",
+    "start_line": 1528,
+    "end_line": 1577,
+    "summary": "将错误码转换为可读的错误描述字符串",
+    "subsystem": "catalog",
+    "scenario": "被数据库操作函数调用，用于在出错时生成用户友好的错误信息",
+    "data_structures": [],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_env_read_header",
+      "mdb_mutex_failed"
+    ]
+  },
+  "mdb_assert_fail": {
+    "file": "mdb.c",
+    "signature": "or the page headers. * @{ */ #define P_BRANCH 0x01 /**< branch page */ #define P_LEAF 0x02 /**< leaf page */ #",
+    "start_line": 1590,
+    "end_line": 1601,
+    "summary": "断言失败处理函数，用于调试和错误报告",
+    "subsystem": "catalog",
+    "scenario": "被内部断言宏调用，当条件不满足时触发，用于调试",
+    "data_structures": [
+      "MDB_env"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_dbg_pgno": {
+    "file": "mdb.c",
+    "signature": "/**< page was dirtied then freed, can b",
+    "start_line": 1608,
+    "end_line": 1614,
+    "summary": "调试函数，返回页面的页号",
+    "subsystem": "storage",
+    "scenario": "被调试输出函数（如mdb_page_list）调用，用于打印页面信息",
+    "data_structures": [
+      "MDB_page",
+      "pgno_t"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_list",
+      "mdb_node_search",
+      "mdb_cursor_next",
+      "mdb_cursor_prev",
+      "mdb_node_add",
+      "mdb_node_del",
+      "mdb_rebalance"
+    ]
+  },
+  "mdb_dkey": {
+    "file": "mdb.c",
+    "signature": "ring spill */ /** @} */ uint16_t mp_flag",
+    "start_line": 1621,
+    "end_line": 1644,
+    "summary": "调试函数，将键值转换为十六进制字符串表示",
+    "subsystem": "storage",
+    "scenario": "被调试输出函数调用，用于以可读格式打印键值",
+    "data_structures": [
+      "MDB_val"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_dval",
+      "mdb_update_key",
+      "main"
+    ]
+  },
+  "mdb_dval": {
+    "file": "mdb.c",
+    "signature": "_t mp_ptrs[0]; /**< dynamic size */ } MDB_page; /** Alternate page header",
+    "start_line": 1646,
+    "end_line": 1656,
+    "summary": "调试函数，将数据值转换为字符串表示",
+    "subsystem": "storage",
+    "scenario": "被调试输出函数调用，用于以可读格式打印数据值",
+    "data_structures": [
+      "MDB_val",
+      "MDB_txn",
+      "MDB_db"
+    ],
+    "direct_calls": [
+      "mdb_dkey"
+    ],
+    "known_callers": [
+      "mdb_cursor_put",
+      "mdb_del",
+      "mdb_put"
+    ]
+  },
+  "mdb_leafnode_type": {
+    "file": "mdb.c",
+    "signature": "indx_t mp2_ptrs[0]; } MDB_page2; #define MP_PGN",
+    "start_line": 1658,
+    "end_line": 1664,
+    "summary": "调试函数，返回叶子节点类型的描述字符串",
+    "subsystem": "storage",
+    "scenario": "被调试输出函数（如mdb_page_list）调用，用于标识节点类型",
+    "data_structures": [
+      "MDB_node"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_list"
+    ]
+  },
+  "mdb_page_list": {
+    "file": "mdb.c",
+    "signature": ") #define MP_UPPER(p) (((MDB_page",
+    "start_line": 1667,
+    "end_line": 1729,
+    "summary": "调试函数，打印页面中所有键的列表",
+    "subsystem": "storage",
+    "scenario": "被调试代码调用，用于检查页面内容和结构",
+    "data_structures": [
+      "MDB_page",
+      "MDB_node",
+      "MDB_val"
+    ],
+    "direct_calls": [
+      "mdb_dbg_pgno",
+      "mdb_leafnode_type"
+    ],
+    "known_callers": []
+  },
+  "mdb_cursor_chk": {
+    "file": "mdb.c",
+    "signature": "rantee 2-byte alignment for 'MDB_nod",
+    "start_line": 1731,
+    "end_line": 1754,
+    "summary": "检查游标状态和有效性",
+    "subsystem": "executor",
+    "scenario": "被游标操作函数调用，确保游标在有效状态下使用",
+    "data_structures": [
+      "MDB_cursor"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_audit": {
+    "file": "mdb.c",
+    "signature": "part of data size or pgno * @{ */",
+    "start_line": 1763,
+    "end_line": 1812,
+    "summary": "审计事务操作，用于调试和验证",
+    "subsystem": "transaction",
+    "scenario": "被事务提交函数（_mdb_txn_commit）调用，用于记录事务变更",
+    "data_structures": [
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "mdb_cursor_init",
+      "mdb_cursor_get",
+      "mdb_page_search",
+      "mdb_cursor_sibling"
+    ],
+    "known_callers": [
+      "_mdb_txn_commit"
+    ]
+  },
+  "mdb_cmp": {
+    "file": "mdb.c",
+    "signature": "node */ #define NODEKEY(node) (void *)((node)->mn_data) /** Address of",
+    "start_line": 1815,
+    "end_line": 1819,
+    "summary": "比较两个键值，用于B树键排序",
+    "subsystem": "index",
+    "scenario": "被B树搜索和插入操作调用，用于确定键的顺序",
+    "data_structures": [
+      "MDB_val"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_dcmp": {
+    "file": "mdb.c",
+    "signature": "(void *)((char *)(node)->mn_data + (node)->mn_ksize) /** Get the page nu",
+    "start_line": 1821,
+    "end_line": 1830,
+    "summary": "比较两个数据值，用于重复数据排序",
+    "subsystem": "index",
+    "scenario": "在重复排序数据库（MDB_DUPSORT）中被调用，用于数据项排序",
+    "data_structures": [
+      "MDB_val"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_page_malloc": {
+    "file": "mdb.c",
+    "signature": "the page number in a branch node */ #define SETPGNO(node,pgno)",
+    "start_line": 1836,
+    "end_line": 1869,
+    "summary": "分配新的内存页面",
+    "subsystem": "storage",
+    "scenario": "被页面分配、拆分和溢出处理函数调用，用于获取新页面",
+    "data_structures": [
+      "MDB_page"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_alloc",
+      "mdb_page_unspill",
+      "mdb_page_touch",
+      "_mdb_cursor_put",
+      "mdb_page_split"
+    ]
+  },
+  "mdb_page_free": {
+    "file": "mdb.c",
+    "signature": ",src) dst = src #undef MP_PGNO #define MP_PGNO(p) ((p)",
+    "start_line": 1874,
+    "end_line": 1880,
+    "summary": "释放内存页面",
+    "subsystem": "storage",
+    "scenario": "被页面释放和拆分函数调用，用于回收页面内存",
+    "data_structures": [
+      "MDB_page"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_dpage_free",
+      "mdb_page_split"
+    ]
+  },
+  "mdb_dpage_free": {
+    "file": "mdb.c",
+    "signature": "signed short *s, *d; \\ s = (unsigned short *)&(src); \\",
+    "start_line": 1883,
+    "end_line": 1893,
+    "summary": "释放脏页面列表中的页面",
+    "subsystem": "storage",
+    "scenario": "被脏页面列表管理函数调用，用于事务提交或中止时的清理",
+    "data_structures": [
+      "MDB_page"
+    ],
+    "direct_calls": [
+      "mdb_page_free"
+    ],
+    "known_callers": [
+      "mdb_dlist_free",
+      "mdb_freelist_save",
+      "mdb_page_flush",
+      "mdb_ovpage_free"
+    ]
+  },
+  "mdb_dlist_free": {
+    "file": "mdb.c",
+    "signature": "dst,src) do { \\ unsigned short *s, *d; \\",
+    "start_line": 1896,
+    "end_line": 1907,
+    "summary": "释放脏页面列表",
+    "subsystem": "storage",
+    "scenario": "被事务结束函数（mdb_txn_end）调用，用于清理事务资源",
+    "data_structures": [
+      "MDB_IDL",
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "mdb_dpage_free"
+    ],
+    "known_callers": [
+      "mdb_txn_end"
+    ]
+  },
+  "mdb_page_loose": {
+    "file": "mdb.c",
+    "signature": "#MDB_DUPFIXED sorted-duplicate sub-DBs. * There are n",
+    "start_line": 1919,
+    "end_line": 1963,
+    "summary": "将页面标记为松散状态，允许重用",
+    "subsystem": "storage",
+    "scenario": "被页面合并函数调用，用于回收空闲页面",
+    "data_structures": [
+      "MDB_page",
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "mdb_mid2l_search",
+      "mdb_midl_append"
+    ],
+    "known_callers": [
+      "mdb_page_merge"
+    ]
+  },
+  "mdb_pages_xkeep": {
+    "file": "mdb.c",
+    "signature": "ges */ size_t md_entries; /**< number of data items */ pgno_t md",
+    "start_line": 1972,
+    "end_line": 2029,
+    "summary": "保留页面，防止在溢出时被释放",
+    "subsystem": "storage",
+    "scenario": "被页面溢出处理函数调用，确保关键页面不被回收",
+    "data_structures": [
+      "MDB_page"
+    ],
+    "direct_calls": [
+      "mdb_page_get"
+    ],
+    "known_callers": [
+      "mdb_page_spill"
+    ]
+  },
+  "mdb_page_spill": {
+    "file": "mdb.c",
+    "signature": "*/ #define mm_flags mm_dbs[FREE_DBI].md_flags /** Last used page in t",
+    "start_line": 2065,
+    "end_line": 2161,
+    "summary": "处理页面溢出，将脏页面临时写入磁盘",
+    "subsystem": "storage",
+    "scenario": "被游标插入和删除操作调用，当脏页面列表满时触发",
+    "data_structures": [
+      "MDB_page",
+      "MDB_txn",
+      "MDB_IDL"
+    ],
+    "direct_calls": [
+      "mdb_midl_alloc",
+      "mdb_pages_xkeep",
+      "mdb_midl_search",
+      "mdb_midl_append",
+      "mdb_midl_sort",
+      "mdb_page_flush"
+    ],
+    "known_callers": [
+      "_mdb_cursor_put",
+      "_mdb_cursor_del"
+    ]
+  },
+  "mdb_find_oldest": {
+    "file": "mdb.c",
+    "signature": "s transaction. */ MDB_IDL mt_free_pgs; /",
+    "start_line": 2164,
+    "end_line": 2180,
+    "summary": "查找最旧的事务或读者，用于资源回收",
+    "subsystem": "transaction",
+    "scenario": "被页面分配函数调用，用于确定可回收的页面范围",
+    "data_structures": [
+      "MDB_txn",
+      "txnid_t"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_alloc"
+    ]
+  },
+  "mdb_page_dirty": {
+    "file": "mdb.c",
+    "signature": "list was full. page numbers in here are * shifted le",
+    "start_line": 2183,
+    "end_line": 2199,
+    "summary": "将页面标记为脏页，表示已被修改",
+    "subsystem": "storage",
+    "scenario": "被页面分配和溢出恢复函数调用，用于跟踪修改过的页面",
+    "data_structures": [
+      "MDB_page",
+      "MDB_txn"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_alloc",
+      "mdb_page_unspill"
+    ]
+  },
+  "mdb_page_alloc": {
+    "file": "mdb.c",
+    "signature": "environment. */ MDB_dbx *mt_dbxs; /** Array of MDB_db records f",
+    "start_line": 2216,
+    "end_line": 2386,
+    "summary": "分配一个新的数据库页面",
+    "subsystem": "storage",
+    "scenario": "被页面触摸、游标插入和页面创建函数调用，用于扩展B树",
+    "data_structures": [
+      "MDB_page",
+      "MDB_txn",
+      "pgno_t"
+    ],
+    "direct_calls": [
+      "mdb_cursor_init",
+      "mdb_find_oldest",
+      "mdb_cursor_get",
+      "mdb_node_read",
+      "mdb_midl_alloc",
+      "mdb_midl_need",
+      "mdb_midl_xmerge",
+      "mdb_page_malloc",
+      "mdb_page_dirty"
+    ],
+    "known_callers": [
+      "mdb_page_touch",
+      "_mdb_cursor_put",
+      "mdb_page_new"
+    ]
+  },
+  "mdb_page_copy": {
+    "file": "mdb.c",
+    "signature": "* The database handle this cursor operates on */ MDB_dbi mc_dbi; /** The",
+    "start_line": 2393,
+    "end_line": 2410,
+    "summary": "复制页面内容，用于页面迁移或备份",
+    "subsystem": "storage",
+    "scenario": "被页面恢复、触摸和环境复制函数调用，用于复制页面数据",
+    "data_structures": [
+      "MDB_page"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_unspill",
+      "mdb_page_touch",
+      "mdb_env_cwalk"
+    ]
+  },
+  "mdb_page_unspill": {
+    "file": "mdb.c",
+    "signature": "*/ #define C_INITIALIZED 0x01 /**< cursor has been initialized and is",
+    "start_line": 2420,
+    "end_line": 2472,
+    "summary": "从临时磁盘存储中恢复溢出的页面",
+    "subsystem": "storage",
+    "scenario": "被页面触摸和游标插入函数调用，用于恢复暂存的脏页面",
+    "data_structures": [
+      "MDB_page",
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "mdb_midl_search",
+      "mdb_page_malloc",
+      "mdb_page_copy",
+      "mdb_page_dirty"
+    ],
+    "known_callers": [
+      "mdb_page_touch",
+      "_mdb_cursor_put"
+    ]
+  },
+  "mdb_page_touch": {
+    "file": "mdb.c",
+    "signature": "e is an inited xcursor */ #define XCURSOR_",
+    "start_line": 2479,
+    "end_line": 2574,
+    "summary": "触摸页面，确保其在内存中并可修改",
+    "subsystem": "storage",
+    "scenario": "被页面搜索、游标触摸和节点移动函数调用，用于准备页面进行写操作",
+    "data_structures": [
+      "MDB_page",
+      "MDB_cursor"
+    ],
+    "direct_calls": [
+      "mdb_page_unspill",
+      "mdb_midl_need",
+      "mdb_page_alloc",
+      "mdb_mid2l_search",
+      "mdb_page_malloc",
+      "mdb_mid2l_insert",
+      "mdb_page_copy"
+    ],
+    "known_callers": [
+      "mdb_page_search_root",
+      "mdb_page_search",
+      "mdb_cursor_touch",
+      "mdb_node_move",
+      "mdb_page_merge"
+    ]
+  },
+  "mdb_env_sync": {
+    "file": "mdb.c",
+    "signature": "f; /**< scratch area for DUPSORT put() */",
+    "start_line": 2576,
+    "end_line": 2604,
+    "summary": "同步环境数据到磁盘，确保持久性",
+    "subsystem": "wal",
+    "scenario": "被事务提交函数调用，用于将元数据页刷新到磁盘",
+    "data_structures": [
+      "MDB_env",
+      "MDB_meta"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "_mdb_txn_commit"
+    ]
+  },
+  "mdb_cursor_shadow": {
+    "file": "mdb.c",
+    "signature": "t me_pgstate.mf_pglast # define me_pghead me_pgstate.mf_",
+    "start_line": 2607,
+    "end_line": 2643,
+    "summary": "创建游标的影子副本，用于嵌套事务",
+    "subsystem": "executor",
+    "scenario": "被事务开始函数调用，用于为嵌套事务准备游标状态",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_txn"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_txn_begin"
+    ]
+  },
+  "mdb_cursors_close": {
+    "file": "mdb.c",
+    "signature": "/ # define me_rmutex me_txns->mti_rmutex /**< Shared reader",
+    "start_line": 2650,
+    "end_line": 2683,
+    "summary": "关闭与事务关联的所有游标",
+    "subsystem": "executor",
+    "scenario": "被事务结束和提交函数调用，用于清理事务资源",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_txn"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_txn_end",
+      "_mdb_txn_commit"
+    ]
+  },
+  "mdb_reader_pid": {
+    "file": "mdb.c",
+    "signature": "I_EXIST(txn, dbi, validity) \\ ((txn) && (dbi)<(txn)->mt_numdbs && ((txn)->",
+    "start_line": 2703,
+    "end_line": 2737,
+    "summary": "获取读者线程的进程ID，用于读者表管理",
+    "subsystem": "transaction",
+    "scenario": "被读者续期和检查函数调用，用于验证读者有效性",
+    "data_structures": [
+      "MDB_txninfo",
+      "MDB_reader"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_txn_renew0",
+      "mdb_reader_check0"
+    ]
+  },
+  "mdb_txn_renew0": {
+    "file": "mdb.c",
+    "signature": "define MDB_END_OPMASK 0x0F /**< mask for",
+    "start_line": 2743,
+    "end_line": 2878,
+    "summary": "续期只读事务，重置其状态以重用",
+    "subsystem": "transaction",
+    "scenario": "被事务续期、开始和环境复制函数调用，用于延长只读事务生命周期",
+    "data_structures": [
+      "MDB_txn",
+      "MDB_env"
+    ],
+    "direct_calls": [
+      "mdb_env_pick_meta",
+      "mdb_reader_pid",
+      "mdb_txn_end"
+    ],
+    "known_callers": [
+      "mdb_txn_renew",
+      "mdb_txn_begin",
+      "mdb_env_copyfd0"
+    ]
+  },
+  "mdb_txn_renew": {
+    "file": "mdb.c",
+    "signature": "int *dead); /** @cond */ static",
+    "start_line": 2880,
+    "end_line": 2895,
+    "summary": "续期只读事务的外部接口",
+    "subsystem": "transaction",
+    "scenario": "被应用程序调用，用于重置和重用只读事务",
+    "data_structures": [
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "mdb_txn_renew0"
+    ],
+    "known_callers": []
+  },
+  "mdb_txn_begin": {
+    "file": "mdb.c",
+    "signature": "atic int mdb_sec_inited; struct MDB_name; static int utf8_to_utf16(const char *src,",
+    "start_line": 2897,
+    "end_line": 2999,
+    "summary": "开始一个新的事务",
+    "subsystem": "transaction",
+    "scenario": "被环境复制、应用程序和子进程调用，用于启动读写或只读事务",
+    "data_structures": [
+      "MDB_txn",
+      "MDB_env"
+    ],
+    "direct_calls": [
+      "mdb_midl_alloc",
+      "mdb_cursor_shadow",
+      "mdb_txn_end",
+      "mdb_txn_renew0"
+    ],
+    "known_callers": [
+      "mdb_env_copyfd1",
+      "mdb_env_copyfd0",
+      "main",
+      "child"
+    ]
+  },
+  "mdb_txn_env": {
+    "file": "mdb.c",
+    "signature": "R */ return strerror(err); defaul",
+    "start_line": 3001,
+    "end_line": 3006,
+    "summary": "返回事务所属的环境句柄",
+    "subsystem": "transaction",
+    "scenario": "被工具函数（如dumpit）调用，用于获取事务的环境上下文",
+    "data_structures": [
+      "MDB_txn",
+      "MDB_env"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "dumpit"
+    ]
+  },
+  "mdb_txn_id": {
+    "file": "mdb.c",
+    "signature": "SAGE_FROM_SYSTEM | FORMAT_MESS",
+    "start_line": 3008,
+    "end_line": 3013,
+    "summary": "返回事务的ID",
+    "subsystem": "transaction",
+    "scenario": "被子进程调用，用于标识和记录事务",
+    "data_structures": [
+      "MDB_txn",
+      "txnid_t"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "mdb_dbis_update": {
+    "file": "mdb.c",
+    "signature": "; return ptr; #else if (err < 0) return \"Invalid",
+    "start_line": 3016,
+    "end_line": 3042,
+    "summary": "更新数据库句柄信息，反映事务变更",
+    "subsystem": "catalog",
+    "scenario": "被事务结束函数调用，用于同步数据库状态变更",
+    "data_structures": [
+      "MDB_txn",
+      "MDB_dbi"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_txn_end"
+    ]
+  },
+  "mdb_txn_end": {
+    "file": "mdb.c",
+    "signature": "_fail(MDB_env *env, const char *expr_txt, const char",
+    "start_line": 3049,
+    "end_line": 3117,
+    "summary": "结束事务，进行提交、中止或重置",
+    "subsystem": "transaction",
+    "scenario": "被事务续期、开始、重置、中止和提交函数调用，用于终结事务",
+    "data_structures": [
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "mdb_dbis_update",
+      "mdb_cursors_close",
+      "mdb_dlist_free",
+      "mdb_midl_free",
+      "mdb_midl_shrink"
+    ],
+    "known_callers": [
+      "mdb_txn_renew0",
+      "mdb_txn_begin",
+      "mdb_txn_reset",
+      "_mdb_txn_abort",
+      "_mdb_txn_commit",
+      "mdb_env_copyfd0"
+    ]
+  },
+  "mdb_txn_reset": {
+    "file": "mdb.c",
+    "signature": ": DB\"}, {\": sub-page\", \": sub-DB\"",
+    "start_line": 3119,
+    "end_line": 3130,
+    "summary": "重置只读事务，使其可重用",
+    "subsystem": "transaction",
+    "scenario": "被应用程序调用，用于清理只读事务状态以重新开始",
+    "data_structures": [
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "mdb_txn_end"
+    ],
+    "known_callers": []
+  },
+  "_mdb_txn_abort": {
+    "file": "mdb.c",
+    "signature": "gs, F_SUBDATA)]; } /** Display all the k",
+    "start_line": 3132,
+    "end_line": 3142,
+    "summary": "内部函数，中止事务并回滚所有更改",
+    "subsystem": "transaction",
+    "scenario": "被事务中止、提交和环境复制函数调用，用于回滚事务",
+    "data_structures": [
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "mdb_txn_end"
+    ],
+    "known_callers": [
+      "mdb_txn_abort",
+      "_mdb_txn_commit",
+      "mdb_env_copyfd1",
+      "mdb_env_copyfd0"
+    ]
+  },
+  "mdb_txn_abort": {
+    "file": "mdb.c",
+    "signature": "rty\" : \"\"; MDB_node *node; unsi",
+    "start_line": 3144,
+    "end_line": 3149,
+    "summary": "中止事务的外部接口，回滚所有更改",
+    "subsystem": "transaction",
+    "scenario": "被应用程序和子进程调用，用于取消事务并丢弃修改",
+    "data_structures": [
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "_mdb_txn_abort"
+    ],
+    "known_callers": [
+      "main",
+      "child"
+    ]
+  },
+  "mdb_freelist_save": {
+    "file": "mdb.c",
+    "signature": "UF; switch (MP_FLAGS(mp) & (P_BRANCH|P_LE",
+    "start_line": 3154,
+    "end_line": 3372,
+    "summary": "保存事务提交时的空闲页面列表到磁盘",
+    "subsystem": "storage",
+    "scenario": "被 _mdb_txn_commit 调用，在事务提交过程中将空闲页面列表持久化到freelist数据库",
+    "data_structures": [
+      "MDB_txn",
+      "MDB_cursor",
+      "MDB_IDL",
+      "freelist"
+    ],
+    "direct_calls": [
+      "mdb_cursor_init",
+      "mdb_page_search",
+      "mdb_midl_need",
+      "mdb_mid2l_search",
+      "mdb_dpage_free",
+      "mdb_cursor_first",
+      "_mdb_cursor_del",
+      "_mdb_cursor_put",
+      "mdb_midl_sort",
+      "mdb_midl_xmerge",
+      "mdb_cursor_next"
+    ],
+    "known_callers": [
+      "_mdb_txn_commit"
+    ]
+  },
+  "mdb_page_flush": {
+    "file": "mdb.c",
+    "signature": "t everything after the page header. * For multi-",
+    "start_line": 3379,
+    "end_line": 3524,
+    "summary": "将事务的脏页刷新到磁盘映射文件",
+    "subsystem": "storage",
+    "scenario": "被 mdb_page_spill 和 _mdb_txn_commit 调用，用于事务提交时或内存压力下将脏页写入磁盘",
+    "data_structures": [
+      "MDB_txn",
+      "MDB_env",
+      "MDB_ID2L",
+      "dirty_list",
+      "P_DIRTY"
+    ],
+    "direct_calls": [
+      "mdb_dpage_free"
+    ],
+    "known_callers": [
+      "mdb_page_spill",
+      "_mdb_txn_commit"
+    ]
+  },
+  "_mdb_txn_commit": {
+    "file": "mdb.c",
+    "signature": "oose_count++; mp->mp_flags |= P_LOOSE;",
+    "start_line": 3526,
+    "end_line": 3753,
+    "summary": "执行事务提交的核心内部函数",
+    "subsystem": "transaction",
+    "scenario": "被 mdb_txn_commit 调用，处理写事务的提交逻辑，包括页面刷新和元数据更新",
+    "data_structures": [
+      "MDB_txn",
+      "MDB_env",
+      "MDB_meta",
+      "WAL",
+      "dirty_list"
+    ],
+    "direct_calls": [
+      "mdb_midl_append_list",
+      "mdb_midl_free",
+      "mdb_cursors_close",
+      "mdb_mid2l_search",
+      "mdb_midl_sort",
+      "mdb_cursor_init",
+      "_mdb_cursor_put",
+      "mdb_freelist_save",
+      "mdb_midl_shrink",
+      "mdb_audit",
+      "mdb_page_flush",
+      "mdb_env_sync",
+      "mdb_env_write_meta",
+      "mdb_txn_end",
+      "_mdb_txn_abort"
+    ],
+    "known_callers": [
+      "mdb_txn_commit"
+    ]
+  },
+  "mdb_txn_commit": {
+    "file": "mdb.c",
+    "signature": "es_xkeep(m0, P_DIRTY, 1)) != MDB_",
+    "start_line": 3755,
+    "end_line": 3760,
+    "summary": "提交一个写事务，使其修改持久化",
+    "subsystem": "transaction",
+    "scenario": "被应用程序主线程或子进程调用，是用户可见的事务提交接口",
+    "data_structures": [
+      "MDB_txn",
+      "MDB_env",
+      "MDB_meta",
+      "commit"
+    ],
+    "direct_calls": [
+      "_mdb_txn_commit"
+    ],
+    "known_callers": [
+      "main",
+      "child"
+    ]
+  },
+  "mdb_env_read_header": {
+    "file": "mdb.c",
+    "signature": "pilled the entire dirty list, * with a few exceptions for cursor",
+    "start_line": 3768,
+    "end_line": 3824,
+    "summary": "从数据库文件读取元数据页头信息",
+    "subsystem": "storage",
+    "scenario": "被 mdb_env_open2 调用，在打开数据库环境时读取并验证元数据页",
+    "data_structures": [
+      "MDB_env",
+      "MDB_meta",
+      "mmap",
+      "header"
+    ],
+    "direct_calls": [
+      "mdb_strerror"
+    ],
+    "known_callers": [
+      "mdb_env_open2"
+    ]
+  },
+  "mdb_env_init_meta0": {
+    "file": "mdb.c",
+    "signature": ">mt_spill_pgs); /* Flush the spilled part of dirty list */ if ((",
+    "start_line": 3827,
+    "end_line": 3839,
+    "summary": "初始化数据库环境的第一个元数据页",
+    "subsystem": "catalog",
+    "scenario": "被 mdb_env_open2 和 mdb_env_copyfd1 调用，用于创建新数据库或恢复时的元数据初始化",
+    "data_structures": [
+      "MDB_env",
+      "MDB_meta",
+      "mmap"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_env_open2",
+      "mdb_env_copyfd1"
+    ]
+  },
+  "mdb_env_init_meta": {
+    "file": "mdb.c",
+    "signature": "DB_txn *txn) { int i; txnid_t mr, oldest = txn->mt_txnid - 1;",
+    "start_line": 3846,
+    "end_line": 3893,
+    "summary": "初始化数据库环境的元数据",
+    "subsystem": "catalog",
+    "scenario": "被 mdb_env_open2 调用，设置事务和数据库的基本元数据信息",
+    "data_structures": [
+      "MDB_env",
+      "MDB_txn",
+      "MDB_meta",
+      "mm_dbs"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_env_open2"
+    ]
+  },
+  "mdb_env_write_meta": {
+    "file": "mdb.c",
+    "signature": "dB, just merge freeDB records into me_pghead",
+    "start_line": 3899,
+    "end_line": 4023,
+    "summary": "将元数据页写入数据库文件",
+    "subsystem": "storage",
+    "scenario": "被 _mdb_txn_commit 调用，在事务提交时持久化元数据更改",
+    "data_structures": [
+      "MDB_env",
+      "MDB_meta",
+      "mmap",
+      "sync"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "_mdb_txn_commit"
+    ]
+  },
+  "mdb_env_pick_meta": {
+    "file": "mdb.c",
+    "signature": "} if (Paranoid && retry < 0 && mop_len) break;",
+    "start_line": 4029,
+    "end_line": 4034,
+    "summary": "选择要使用的元数据页（基于事务ID奇偶性）",
+    "subsystem": "catalog",
+    "scenario": "被多个环境操作函数调用，用于确定当前应使用哪个元数据页副本",
+    "data_structures": [
+      "MDB_env",
+      "MDB_meta",
+      "mm_txnid",
+      "transaction"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_txn_renew0",
+      "mdb_env_set_mapsize",
+      "mdb_env_open2",
+      "mdb_env_share_locks",
+      "mdb_env_stat",
+      "mdb_env_info",
+      "mdb_mutex_failed"
+    ]
+  },
+  "mdb_env_create": {
+    "file": "mdb.c",
+    "signature": "_old) { oldest = mdb_find_oldest(txn",
+    "start_line": 4036,
+    "end_line": 4060,
+    "summary": "创建并初始化一个新的LMDB环境句柄",
+    "subsystem": "catalog",
+    "scenario": "被应用程序主函数或子进程调用，是数据库使用的第一个API函数",
+    "data_structures": [
+      "MDB_env",
+      "environment",
+      "initialization"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "main",
+      "child"
+    ]
+  },
+  "mdb_env_map": {
+    "file": "mdb.c",
+    "signature": "]); if ((rc = mdb_node_read(&m2, leaf, &data)) != MDB",
+    "start_line": 4062,
+    "end_line": 4149,
+    "summary": "将数据库文件映射到进程内存空间",
+    "subsystem": "storage",
+    "scenario": "被 mdb_env_set_mapsize 和 mdb_env_open2 调用，用于建立或调整内存映射",
+    "data_structures": [
+      "MDB_env",
+      "mmap",
+      "me_map",
+      "me_maxpg"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_env_set_mapsize",
+      "mdb_env_open2"
+    ]
+  },
+  "mdb_env_set_mapsize": {
+    "file": "mdb.c",
+    "signature": "o memcpy may copy words instead of bytes. */ if ((unus",
+    "start_line": 4151,
+    "end_line": 4184,
+    "summary": "设置数据库内存映射文件的大小",
+    "subsystem": "storage",
+    "scenario": "被应用程序主函数或子进程调用，用于调整数据库最大容量",
+    "data_structures": [
+      "MDB_env",
+      "mmap",
+      "me_mapsize",
+      "resize"
+    ],
+    "direct_calls": [
+      "mdb_env_pick_meta",
+      "mdb_env_map"
+    ],
+    "known_callers": [
+      "main",
+      "child"
+    ]
+  },
+  "mdb_env_set_maxdbs": {
+    "file": "mdb.c",
+    "signature": "lled. */ static int mdb_page_unspill(MDB_txn *txn, MDB_",
+    "start_line": 4186,
+    "end_line": 4194,
+    "summary": "设置数据库环境中允许的最大数据库数量",
+    "subsystem": "catalog",
+    "scenario": "被应用程序主函数调用，在环境打开前配置多数据库支持",
+    "data_structures": [
+      "MDB_env",
+      "me_maxdbs",
+      "DBI",
+      "configuration"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "main",
+      "child"
+    ]
+  },
+  "mdb_env_set_maxreaders": {
+    "file": "mdb.c",
+    "signature": "<< 1; for (tx2 = txn; tx2; tx2=tx2->mt_parent) { if (!tx2->mt_spi",
+    "start_line": 4196,
+    "end_line": 4204,
+    "summary": "设置数据库环境支持的最大并发读者数",
+    "subsystem": "lock",
+    "scenario": "被应用程序主函数调用，在环境打开前配置读者锁表大小",
+    "data_structures": [
+      "MDB_env",
+      "me_maxreaders",
+      "reader slots",
+      "locking"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_env_get_maxreaders": {
+    "file": "mdb.c",
+    "signature": "np; int num; if (txn->mt_dirty_room == 0) return MDB_TXN_FUL",
+    "start_line": 4206,
+    "end_line": 4213,
+    "summary": "获取数据库环境支持的最大并发读者数",
+    "subsystem": "lock",
+    "scenario": "被管理工具或监控代码调用，查询当前环境配置",
+    "data_structures": [
+      "MDB_env",
+      "me_maxreaders",
+      "configuration"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_fsize": {
+    "file": "mdb.c",
+    "signature": "_WRITEMAP) { np = mp; } else { np = mdb_p",
+    "start_line": 4215,
+    "end_line": 4234,
+    "summary": "获取文件大小（跨平台实现）",
+    "subsystem": "storage",
+    "scenario": "被 mdb_env_copyfd0 调用，在数据库复制或备份时确定文件尺寸",
+    "data_structures": [
+      "file size",
+      "portability"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_env_copyfd0"
+    ]
+  },
+  "mdb_fname_init": {
+    "file": "mdb.c",
+    "signature": "ke it dirty and re-insert into tree with updated pgno. * Set #MDB_TXN_ERROR on failur",
+    "start_line": 4271,
+    "end_line": 4290,
+    "summary": "初始化数据库文件名（处理路径和模式）",
+    "subsystem": "storage",
+    "scenario": "被 mdb_env_open 和 mdb_env_copy2 调用，在打开或复制数据库时解析文件路径",
+    "data_structures": [
+      "MDB_env",
+      "file path",
+      "open mode"
+    ],
+    "direct_calls": [
+      "utf8_to_utf16"
+    ],
+    "known_callers": [
+      "mdb_env_open",
+      "mdb_env_copy2"
+    ]
+  },
+  "mdb_fopen": {
+    "file": "mdb.c",
+    "signature": "mp->mp_pgno; /* If txn has a parent, make sure the page is in our * dirty list. */ if (dl[0].mid) { unsigned",
+    "start_line": 4329,
+    "end_line": 4416,
+    "summary": "打开数据库文件（跨平台文件打开）",
+    "subsystem": "storage",
+    "scenario": "被 mdb_env_setup_locks、mdb_env_open 和 mdb_env_copy2 调用，用于打开数据库主文件或锁文件",
+    "data_structures": [
+      "file descriptor",
+      "open mode",
+      "portability"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_env_setup_locks",
+      "mdb_env_open",
+      "mdb_env_copy2"
+    ]
+  },
+  "mdb_env_open2": {
+    "file": "mdb.c",
+    "signature": "e, flags)) rc = ErrCode(); #if defined(_W",
+    "start_line": 4426,
+    "end_line": 4572,
+    "summary": "打开数据库环境的核心内部实现",
+    "subsystem": "storage",
+    "scenario": "被 mdb_env_open 调用，执行环境打开的实际工作，包括文件映射和锁初始化",
+    "data_structures": [
+      "MDB_env",
+      "mmap",
+      "locking",
+      "MDB_meta",
+      "initialization"
+    ],
+    "direct_calls": [
+      "mdb_env_read_header",
+      "mdb_env_init_meta0",
+      "mdb_env_init_meta",
+      "mdb_env_map",
+      "mdb_env_pick_meta"
+    ],
+    "known_callers": [
+      "mdb_env_open"
+    ]
+  },
+  "mdb_env_reader_dest": {
+    "file": "mdb.c",
+    "signature": "*/ static int mdb_reader_pid(MDB_env *env,",
+    "start_line": 4579,
+    "end_line": 4589,
+    "summary": "清理读者线程的TLS（线程本地存储）资源",
+    "subsystem": "lock",
+    "scenario": "被 mdb_tls_callback 调用，在线程退出时自动释放读者槽",
+    "data_structures": [
+      "MDB_env",
+      "TLS",
+      "reader slots",
+      "cleanup"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_tls_callback"
+    ]
+  },
+  "mdb_tls_callback": {
+    "file": "mdb.c",
+    "signature": "e this: */ if (!h) return ErrCode() != ERROR_INVALID_PARAMETER; /*",
+    "start_line": 4603,
+    "end_line": 4619,
+    "summary": "线程本地存储销毁回调函数",
+    "subsystem": "lock",
+    "scenario": "被系统线程库调用，在线程退出时自动清理数据库读者资源",
+    "data_structures": [
+      "pthread_key_t",
+      "TLS",
+      "destructor"
+    ],
+    "direct_calls": [
+      "mdb_env_reader_dest"
+    ],
+    "known_callers": []
+  },
+  "mdb_env_share_locks": {
+    "file": "mdb.c",
+    "signature": "mm_txnid; txn->mt_u.reader = NULL; } else { MDB_reader",
+    "start_line": 4649,
+    "end_line": 4687,
+    "summary": "在进程间共享锁文件（用于只读环境）",
+    "subsystem": "lock",
+    "scenario": "被 mdb_env_open 调用，配置只读环境以共享锁文件，允许多进程并发只读访问",
+    "data_structures": [
+      "MDB_env",
+      "lock file",
+      "shared memory",
+      "read-only"
+    ],
+    "direct_calls": [
+      "mdb_env_pick_meta"
+    ],
+    "known_callers": [
+      "mdb_env_open"
+    ]
+  },
+  "mdb_env_excl_lock": {
+    "file": "mdb.c",
+    "signature": ") { UNLOCK_MUTEX(rmutex); return MDB_READERS_FULL;",
+    "start_line": 4692,
+    "end_line": 4732,
+    "summary": "获取数据库环境的排他锁",
+    "subsystem": "lock",
+    "scenario": "被 mdb_env_setup_locks 和 mdb_env_close0 调用，用于写互斥或环境关闭时的独占访问",
+    "data_structures": [
+      "MDB_env",
+      "exclusive lock",
+      "mutex",
+      "synchronization"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_env_setup_locks",
+      "mdb_env_close0"
+    ]
+  },
+  "mdb_hash_val": {
+    "file": "mdb.c",
+    "signature": "meta = env->me_metas[r->mr_txnid & 1]; } txn->mt_txnid =",
+    "start_line": 4774,
+    "end_line": 4792,
+    "summary": "计算键值的哈希值（用于B树查找）",
+    "subsystem": "index",
+    "scenario": "被 mdb_hash_enc 调用，在加密或普通模式下为键生成哈希值",
+    "data_structures": [
+      "MDB_val",
+      "hash function",
+      "key"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_hash_enc"
+    ]
+  },
+  "mdb_pack85": {
+    "file": "mdb.c",
+    "signature": "xnid == mdb_debug_start) mdb_debug = MDB_DBG_INFO; #en",
+    "start_line": 4804,
+    "end_line": 4813,
+    "summary": "Base85编码/解码函数（用于调试输出）",
+    "subsystem": "debug",
+    "scenario": "被 mdb_hash_enc 调用，在调试模式下编码键值用于可读输出",
+    "data_structures": [
+      "base85",
+      "encoding",
+      "debug"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_hash_enc"
+    ]
+  },
+  "mdb_hash_enc": {
+    "file": "mdb.c",
+    "signature": "0; txn->mt_dirty_room = MDB_IDL_UM_MAX; txn->mt_u.dirt",
+    "start_line": 4815,
+    "end_line": 4823,
+    "summary": "计算加密键的哈希值（当启用MDB_ENCRYPT时）",
+    "subsystem": "index",
+    "scenario": "被 mdb_env_setup_locks 调用，在加密数据库中为键生成哈希值",
+    "data_structures": [
+      "MDB_val",
+      "encryption",
+      "hash",
+      "key"
+    ],
+    "direct_calls": [
+      "mdb_hash_val",
+      "mdb_pack85"
+    ],
+    "known_callers": [
+      "mdb_env_setup_locks"
+    ]
+  },
+  "mdb_env_setup_locks": {
+    "file": "mdb.c",
+    "signature": "l_pgs = NULL; env->me_txn = txn; memcpy(txn->mt_dbiseqs, env->me_dbiseqs, env->me_max",
+    "start_line": 4833,
+    "end_line": 5039,
+    "summary": "设置数据库环境的锁机制",
+    "subsystem": "lock",
+    "scenario": "被 mdb_env_open 调用，初始化读写锁、互斥锁等同步原语",
+    "data_structures": [
+      "MDB_env",
+      "mutex",
+      "rwlock",
+      "synchronization",
+      "locking"
+    ],
+    "direct_calls": [
+      "mdb_fopen",
+      "mdb_env_excl_lock",
+      "mdb_hash_enc"
+    ],
+    "known_callers": [
+      "mdb_env_open"
+    ]
+  },
+  "mdb_env_open": {
+    "file": "mdb.c",
+    "signature": "%p, root page %\"Z\"u\", names[mode & MDB_END_OPMASK], txn->mt_txnid, (txn->mt_flags & MDB_",
+    "start_line": 5053,
+    "end_line": 5152,
+    "summary": "打开一个LMDB数据库环境（用户API）",
+    "subsystem": "storage",
+    "scenario": "被应用程序主函数或子进程调用，是打开数据库环境的主要用户接口",
+    "data_structures": [
+      "MDB_env",
+      "mmap",
+      "locking",
+      "open"
+    ],
+    "direct_calls": [
+      "mdb_fname_init",
+      "mdb_midl_alloc",
+      "mdb_env_setup_locks",
+      "mdb_fopen",
+      "mdb_env_open2",
+      "mdb_env_share_locks",
+      "mdb_env_close0"
+    ],
+    "known_callers": [
+      "main",
+      "child"
+    ]
+  },
+  "mdb_env_close0": {
+    "file": "mdb.c",
+    "signature": "_maxfree_1pg, more = 1; txnid_t pglast = 0, head_id = 0;",
+    "start_line": 5155,
+    "end_line": 5249,
+    "summary": "关闭数据库环境的核心内部实现",
+    "subsystem": "storage",
+    "scenario": "被 mdb_env_open 和 mdb_env_close 调用，执行环境关闭的实际清理工作",
+    "data_structures": [
+      "MDB_env",
+      "cleanup",
+      "munmap",
+      "lock release"
+    ],
+    "direct_calls": [
+      "mdb_midl_free",
+      "mdb_env_excl_lock"
+    ],
+    "known_callers": [
+      "mdb_env_open",
+      "mdb_env_close"
+    ]
+  },
+  "mdb_env_close": {
+    "file": "mdb.c",
+    "signature": "j; /* If using records from freeDB w",
+    "start_line": 5251,
+    "end_line": 5269,
+    "summary": "关闭数据库环境并释放所有资源（用户API）",
+    "subsystem": "storage",
+    "scenario": "被应用程序主函数或子进程调用，是关闭数据库环境的用户接口",
+    "data_structures": [
+      "MDB_env",
+      "cleanup",
+      "resource release",
+      "close"
+    ],
+    "direct_calls": [
+      "mdb_env_close0"
+    ],
+    "known_callers": [
+      "main",
+      "child"
+    ]
+  },
+  "mdb_cmp_long": {
+    "file": "mdb.c",
+    "signature": "_tassert(txn, pglast <= env->me_pglast); rc = _mdb_cursor",
+    "start_line": 5272,
+    "end_line": 5277,
+    "summary": "比较两个长整型键（用于B树节点排序）",
+    "subsystem": "index",
+    "scenario": "被B树操作函数调用，在插入或查找时比较整数键的大小",
+    "data_structures": [
+      "MDB_node",
+      "key comparison",
+      "B-tree"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_cmp_int": {
+    "file": "mdb.c",
+    "signature": "ecnt < txn->mt_free_pgs[0]) { if (!freecnt) { /* Mak",
+    "start_line": 5284,
+    "end_line": 5289,
+    "summary": "比较两个整型键（用于B树节点排序）",
+    "subsystem": "index",
+    "scenario": "被B树操作函数调用，在插入或查找时比较整数键的大小",
+    "data_structures": [
+      "MDB_node",
+      "key comparison",
+      "B-tree"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_cmp_cint": {
+    "file": "mdb.c",
+    "signature": "_NOTFOUND) return rc; } free_pgs = txn->mt_free_p",
+    "start_line": 5294,
+    "end_line": 5319,
+    "summary": "比较两个压缩整型键（用于特殊编码的整数）",
+    "subsystem": "index",
+    "scenario": "被B树操作函数调用，处理特殊编码的整数键比较",
+    "data_structures": [
+      "MDB_node",
+      "key comparison",
+      "compressed int"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_cmp_memn": {
+    "file": "mdb.c",
+    "signature": "i = free_pgs[0]; DPRINTF((\"IDL write txn %\"Z\"u root %\"Z",
+    "start_line": 5322,
+    "end_line": 5338,
+    "summary": "比较两个内存区域（用于二进制键排序）",
+    "subsystem": "index",
+    "scenario": "被B树操作函数调用，在插入或查找时比较二进制键的内容",
+    "data_structures": [
+      "MDB_val",
+      "memcmp",
+      "key comparison",
+      "B-tree"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_cmp_memnr": {
+    "file": "mdb.c",
+    "signature": "multi-page, * to avoid searching freeDB for a page range.",
+    "start_line": 5341,
+    "end_line": 5364,
+    "summary": "反向比较两个内存区域（用于降序排序）",
+    "subsystem": "index",
+    "scenario": "被B树操作函数调用，支持反向键顺序的比较操作",
+    "data_structures": [
+      "MDB_val",
+      "reverse comparison",
+      "key ordering"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_node_search": {
+    "file": "mdb.c",
+    "signature": "& head_id > 1) { /* Overflow multi-page for part of me_pghead */ head_r",
+    "start_line": 5373,
+    "end_line": 5462,
+    "summary": "在B树节点中搜索指定的键",
+    "subsystem": "index",
+    "scenario": "被 mdb_page_search_root、mdb_page_search 和 mdb_cursor_set 调用，在页面内进行二分查找定位键位置",
+    "data_structures": [
+      "MDB_page",
+      "MDB_node",
+      "binary search",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "mdb_dbg_pgno"
+    ],
+    "known_callers": [
+      "mdb_page_search_root",
+      "mdb_page_search",
+      "mdb_cursor_set"
+    ]
+  },
+  "mdb_cursor_adjust": {
+    "file": "mdb.c",
+    "signature": "me_pglast); key.mv_data = &id; if (len > mop_l",
+    "start_line": 5465,
+    "end_line": 5475,
+    "summary": "调整游标位置以反映页面结构变化",
+    "subsystem": "executor",
+    "scenario": "被页面合并和游标操作函数调用，在页面分裂或合并后更新游标索引",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "cursor position",
+      "B-tree"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_cursor_pop": {
+    "file": "mdb.c",
+    "signature": "ta, MDB_CURRENT); mop[0] = save; if (",
+    "start_line": 5479,
+    "end_line": 5493,
+    "summary": "从游标栈中弹出一层页面引用",
+    "subsystem": "executor",
+    "scenario": "被 mdb_cursor_sibling、mdb_page_merge 等函数调用，在游标向上移动时清理栈帧",
+    "data_structures": [
+      "MDB_cursor",
+      "cursor stack",
+      "mc_top",
+      "navigation"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_cursor_sibling",
+      "mdb_page_merge",
+      "mdb_env_cwalk",
+      "mdb_drop0"
+    ]
+  },
+  "mdb_cursor_push": {
+    "file": "mdb.c",
+    "signature": "eep dirty. * @return 0 on success, non-zero on failure.",
+    "start_line": 5498,
+    "end_line": 5514,
+    "summary": "向游标栈中压入一层页面引用",
+    "subsystem": "executor",
+    "scenario": "被 mdb_page_search_root、mdb_page_search_lowest 等函数调用，在游标向下移动时保存路径",
+    "data_structures": [
+      "MDB_cursor",
+      "cursor stack",
+      "mc_pg",
+      "navigation"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_search_root",
+      "mdb_page_search_lowest",
+      "mdb_cursor_sibling",
+      "_mdb_cursor_put"
+    ]
+  },
+  "mdb_page_get": {
+    "file": "mdb.c",
+    "signature": "DB_COMMIT_PAGES]; ssize_t wpos = 0, wsize = 0, wres; size_t next_pos = 1; /",
+    "start_line": 5524,
+    "end_line": 5576,
+    "summary": "根据页面号获取页面内容（支持溢出页）",
+    "subsystem": "storage",
+    "scenario": "被 mdb_pages_xkeep、mdb_page_search_root 等函数调用，从内存映射或磁盘读取页面",
+    "data_structures": [
+      "MDB_page",
+      "pgno_t",
+      "mmap",
+      "page cache"
+    ],
+    "direct_calls": [
+      "mdb_midl_search",
+      "mdb_mid2l_search"
+    ],
+    "known_callers": [
+      "mdb_pages_xkeep",
+      "mdb_page_search_root",
+      "mdb_page_search_lowest",
+      "mdb_page_search",
+      "mdb_node_read",
+      "mdb_cursor_sibling",
+      "_mdb_cursor_put",
+      "_mdb_cursor_del",
+      "mdb_rebalance",
+      "mdb_env_cwalk"
+    ]
+  },
+  "mdb_page_search_root": {
+    "file": "mdb.c",
+    "signature": "e. We use the ov structure to set * the write offset, to at least save",
+    "start_line": 5581,
+    "end_line": 5659,
+    "summary": "从根页面开始搜索B树，定位目标键所在的叶子页面",
+    "subsystem": "storage",
+    "scenario": "被mdb_cursor_set、mdb_cursor_first等游标操作调用，用于在B树中定位键值",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "MDB_node",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "mdb_node_search",
+      "mdb_page_get",
+      "mdb_cursor_push",
+      "mdb_page_touch"
+    ],
+    "known_callers": [
+      "mdb_page_search_lowest",
+      "mdb_page_search",
+      "mdb_env_cwalk"
+    ]
+  },
+  "mdb_page_search_lowest": {
+    "file": "mdb.c",
+    "signature": "on-chip cache is * flushed. */ CACHEFLUSH(env",
+    "start_line": 5667,
+    "end_line": 5681,
+    "summary": "在当前分支页面下搜索最小键，用于处理页面下溢",
+    "subsystem": "storage",
+    "scenario": "被mdb_node_move和mdb_page_merge调用，在页面合并或重平衡时查找最小键",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "MDB_node",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "mdb_page_get",
+      "mdb_cursor_push",
+      "mdb_page_search_root"
+    ],
+    "known_callers": [
+      "mdb_node_move",
+      "mdb_page_merge"
+    ]
+  },
+  "mdb_page_search": {
+    "file": "mdb.c",
+    "signature": "j; dl[0].mid = j; return MDB_SUCCESS; } static int _mdb_txn_commi",
+    "start_line": 5694,
+    "end_line": 5768,
+    "summary": "在B树中搜索指定键，支持多种搜索模式和标志",
+    "subsystem": "storage",
+    "scenario": "被mdb_audit、mdb_freelist_save、mdb_cursor_set等调用，用于键值查找和游标定位",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "MDB_node",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "mdb_cursor_init",
+      "mdb_node_search",
+      "mdb_node_read",
+      "mdb_page_get",
+      "mdb_page_touch",
+      "mdb_page_search_root"
+    ],
+    "known_callers": [
+      "mdb_audit",
+      "mdb_freelist_save",
+      "mdb_cursor_set",
+      "mdb_cursor_first",
+      "mdb_cursor_last",
+      "mdb_cursor_touch",
+      "mdb_cursor_init",
+      "mdb_drop0"
+    ]
+  },
+  "mdb_ovpage_free": {
+    "file": "mdb.c",
+    "signature": "= parent->mt_u.dirty_list; src = txn->mt_u.dirty_list;",
+    "start_line": 5770,
+    "end_line": 5844,
+    "summary": "释放溢出页面，处理大值数据存储的页面回收",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_put和_mdb_cursor_del调用，在更新或删除大值数据时释放溢出页面",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "MDB_txn",
+      "spill list"
+    ],
+    "direct_calls": [
+      "mdb_midl_search",
+      "mdb_midl_need",
+      "mdb_dpage_free",
+      "mdb_midl_append_range"
+    ],
+    "known_callers": [
+      "_mdb_cursor_put",
+      "_mdb_cursor_del"
+    ]
+  },
+  "mdb_node_read": {
+    "file": "mdb.c",
+    "signature": ".mid) i--; if (yp == dst[i].mid) { i--; len--; }",
+    "start_line": 5852,
+    "end_line": 5876,
+    "summary": "读取节点数据，处理常规数据和溢出数据的获取",
+    "subsystem": "storage",
+    "scenario": "被mdb_page_alloc、mdb_page_search、mdb_cursor_next等调用，用于获取节点存储的值",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_node",
+      "MDB_val",
+      "overflow page"
+    ],
+    "direct_calls": [
+      "mdb_page_get"
+    ],
+    "known_callers": [
+      "mdb_page_alloc",
+      "mdb_page_search",
+      "mdb_cursor_next",
+      "mdb_cursor_prev",
+      "mdb_cursor_set",
+      "mdb_cursor_first",
+      "mdb_cursor_last",
+      "mdb_cursor_get"
+    ]
+  },
+  "mdb_get": {
+    "file": "mdb.c",
+    "signature": "ty_room = txn->mt_dirty_room; if (txn->mt_spill_pgs) { if (parent->",
+    "start_line": 5878,
+    "end_line": 5897,
+    "summary": "根据键检索对应的值，是主要的查询接口",
+    "subsystem": "storage",
+    "scenario": "被上层应用调用，执行键值查询操作",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_val",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "mdb_cursor_init",
+      "mdb_cursor_set"
+    ],
+    "known_callers": []
+  },
+  "mdb_cursor_sibling": {
+    "file": "mdb.c",
+    "signature": "our loose page list to parent's */ for (lp = &parent->mt_loo",
+    "start_line": 5907,
+    "end_line": 5954,
+    "summary": "查找当前页面的兄弟页面，用于游标横向移动",
+    "subsystem": "storage",
+    "scenario": "被mdb_audit、mdb_cursor_next、mdb_cursor_prev等调用，支持游标在兄弟节点间移动",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "MDB_node",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "mdb_cursor_pop",
+      "mdb_page_get",
+      "mdb_cursor_push"
+    ],
+    "known_callers": [
+      "mdb_audit",
+      "mdb_cursor_next",
+      "mdb_cursor_prev",
+      "mdb_cursor_set",
+      "mdb_cursor_get",
+      "mdb_cursor_del0",
+      "mdb_page_split",
+      "mdb_drop0"
+    ]
+  },
+  "mdb_cursor_next": {
+    "file": "mdb.c",
+    "signature": "ail; } } } rc = mdb_freelist_save(txn); if (rc) goto fail; mdb_midl_free(env-",
+    "start_line": 5957,
+    "end_line": 6039,
+    "summary": "将游标移动到下一个数据项，支持顺序遍历",
+    "subsystem": "storage",
+    "scenario": "被mdb_freelist_save和mdb_cursor_get调用，用于正向遍历数据",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "MDB_node",
+      "MDB_val"
+    ],
+    "direct_calls": [
+      "mdb_cursor_first",
+      "mdb_dbg_pgno",
+      "mdb_cursor_sibling",
+      "mdb_xcursor_init1",
+      "mdb_node_read"
+    ],
+    "known_callers": [
+      "mdb_freelist_save",
+      "mdb_cursor_get"
+    ]
+  },
+  "mdb_cursor_prev": {
+    "file": "mdb.c",
+    "signature": "d #MDB_meta for an empty database environment */ static void ESECT mdb_env_init_meta0(MDB_",
+    "start_line": 6042,
+    "end_line": 6121,
+    "summary": "将游标移动到上一个数据项，支持逆序遍历",
+    "subsystem": "storage",
+    "scenario": "被mdb_cursor_get调用，用于反向遍历数据",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "MDB_node",
+      "MDB_val"
+    ],
+    "direct_calls": [
+      "mdb_cursor_last",
+      "mdb_dbg_pgno",
+      "mdb_cursor_sibling",
+      "mdb_xcursor_init1",
+      "mdb_node_read"
+    ],
+    "known_callers": [
+      "mdb_cursor_get"
+    ]
+  },
+  "mdb_cursor_set": {
+    "file": "mdb.c",
+    "signature": "f _WIN32 OVERLAPPED ov; #else int r2; #endif toggle = txn->mt_txnid & 1; DPRINTF((\"writing meta page",
+    "start_line": 6124,
+    "end_line": 6319,
+    "summary": "根据键定位游标，设置游标到指定位置",
+    "subsystem": "storage",
+    "scenario": "被mdb_get、mdb_cursor_get、_mdb_cursor_put等调用，用于精确游标定位",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_val",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "mdb_page_search",
+      "mdb_node_search",
+      "mdb_cursor_sibling",
+      "mdb_xcursor_init1",
+      "mdb_cursor_first",
+      "mdb_node_read"
+    ],
+    "known_callers": [
+      "mdb_get",
+      "mdb_cursor_get",
+      "_mdb_cursor_put",
+      "mdb_del0",
+      "mdb_dbi_open"
+    ]
+  },
+  "mdb_cursor_first": {
+    "file": "mdb.c",
+    "signature": "flags = env->me_flags; #ifdef _WIN32 int rc; HANDLE mh; LONG sizelo,",
+    "start_line": 6322,
+    "end_line": 6364,
+    "summary": "将游标移动到当前数据库的第一个数据项",
+    "subsystem": "storage",
+    "scenario": "被mdb_freelist_save、mdb_cursor_next、mdb_cursor_set等调用，用于定位到起始位置",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "MDB_node",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "mdb_page_search",
+      "mdb_xcursor_init1",
+      "mdb_node_read"
+    ],
+    "known_callers": [
+      "mdb_freelist_save",
+      "mdb_cursor_next",
+      "mdb_cursor_set",
+      "mdb_cursor_get",
+      "mdb_cursor_del0"
+    ]
+  },
+  "mdb_cursor_last": {
+    "file": "mdb.c",
+    "signature": "(mh); if (rc) return rc; #else int mmap_flags = MAP_SHARED; int pro",
+    "start_line": 6367,
+    "end_line": 6407,
+    "summary": "将游标移动到当前数据库的最后一个数据项",
+    "subsystem": "storage",
+    "scenario": "被mdb_cursor_prev、mdb_cursor_get、_mdb_cursor_put调用，用于定位到末尾位置",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "MDB_node",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "mdb_page_search",
+      "mdb_xcursor_init1",
+      "mdb_node_read"
+    ],
+    "known_callers": [
+      "mdb_cursor_prev",
+      "mdb_cursor_get",
+      "_mdb_cursor_put"
+    ]
+  },
+  "mdb_cursor_get": {
+    "file": "mdb.c",
+    "signature": "for the new map. */ if (addr && env->me_map != addr) return EBUSY; /* TODO: Make",
+    "start_line": 6409,
+    "end_line": 6595,
+    "summary": "获取游标当前指向的键值对",
+    "subsystem": "storage",
+    "scenario": "被mdb_audit、mdb_page_alloc、mdb_env_copyfd1等调用，用于读取当前游标数据",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_val",
+      "MDB_node"
+    ],
+    "direct_calls": [
+      "mdb_node_read",
+      "mdb_cursor_set",
+      "mdb_cursor_next",
+      "mdb_cursor_last",
+      "mdb_cursor_sibling",
+      "mdb_cursor_prev",
+      "mdb_cursor_first"
+    ],
+    "known_callers": [
+      "mdb_audit",
+      "mdb_page_alloc",
+      "mdb_env_copyfd1",
+      "main",
+      "dumpit"
+    ]
+  },
+  "mdb_cursor_touch": {
+    "file": "mdb.c",
+    "signature": "LY= O_RDONLY, /**",
+    "start_line": 6601,
+    "end_line": 6626,
+    "summary": "标记游标所在页面为脏页，确保修改可持久化",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_put和_mdb_cursor_del调用，在写入或删除前标记页面",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "dirty page"
+    ],
+    "direct_calls": [
+      "mdb_cursor_init",
+      "mdb_page_search",
+      "mdb_page_touch"
+    ],
+    "known_callers": [
+      "_mdb_cursor_put",
+      "_mdb_cursor_del"
+    ]
+  },
+  "_mdb_cursor_put": {
+    "file": "mdb.c",
+    "signature": "@param[in] env The LMDB environment. * @param[in,out] fname Path from from #mdb_fname_init().",
+    "start_line": 6631,
+    "end_line": 7161,
+    "summary": "内部游标写入实现，处理键值对的插入和更新",
+    "subsystem": "storage",
+    "scenario": "被mdb_freelist_save、_mdb_txn_commit、mdb_cursor_put等调用，执行数据写入操作",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_val",
+      "MDB_node",
+      "overflow page"
+    ],
+    "direct_calls": [
+      "mdb_cursor_last",
+      "mdb_cursor_set",
+      "mdb_page_spill",
+      "mdb_page_new",
+      "mdb_cursor_push",
+      "mdb_cursor_touch",
+      "mdb_update_key",
+      "mdb_page_alloc",
+      "mdb_node_del",
+      "mdb_page_get",
+      "mdb_page_unspill",
+      "mdb_page_malloc",
+      "mdb_mid2l_insert",
+      "mdb_ovpage_free",
+      "mdb_leaf_size",
+      "mdb_page_split",
+      "mdb_node_add",
+      "mdb_xcursor_init1",
+      "mdb_xcursor_init2"
+    ],
+    "known_callers": [
+      "mdb_freelist_save",
+      "_mdb_txn_commit",
+      "mdb_cursor_put",
+      "mdb_put",
+      "mdb_dbi_open"
+    ]
+  },
+  "mdb_cursor_put": {
+    "file": "mdb.c",
+    "signature": "[in] val value to hash * @param[in] hval initial value for hash * @return 64 bit hash",
+    "start_line": 7163,
+    "end_line": 7174,
+    "summary": "游标写入接口，插入或更新键值对",
+    "subsystem": "storage",
+    "scenario": "被main和child测试程序调用，执行数据写入",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_val",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "_mdb_cursor_put",
+      "mdb_dval"
+    ],
+    "known_callers": [
+      "main",
+      "child"
+    ]
+  },
+  "_mdb_cursor_del": {
+    "file": "mdb.c",
+    "signature": "unsigned char *end = s + val->mv_size; /* * FNV-1a hash each",
+    "start_line": 7176,
+    "end_line": 7277,
+    "summary": "内部游标删除实现，处理键值对的删除",
+    "subsystem": "storage",
+    "scenario": "被mdb_freelist_save、mdb_cursor_del、mdb_del0调用，执行数据删除操作",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_node",
+      "free list"
+    ],
+    "direct_calls": [
+      "mdb_page_spill",
+      "mdb_cursor_touch",
+      "mdb_node_shrink",
+      "mdb_drop0",
+      "mdb_page_get",
+      "mdb_ovpage_free",
+      "mdb_cursor_del0"
+    ],
+    "known_callers": [
+      "mdb_freelist_save",
+      "mdb_cursor_del",
+      "mdb_del0"
+    ]
+  },
+  "mdb_cursor_del": {
+    "file": "mdb.c",
+    "signature": "] = env->me_txkey; #endif } /* Try to get exclusive",
+    "start_line": 7279,
+    "end_line": 7285,
+    "summary": "游标删除接口，删除当前游标指向的数据项",
+    "subsystem": "storage",
+    "scenario": "被child测试程序调用，执行数据删除",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_node",
+      "free list"
+    ],
+    "direct_calls": [
+      "_mdb_cursor_del"
+    ],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "mdb_page_new": {
+    "file": "mdb.c",
+    "signature": "it. */ if ((rc = mdb_env_excl_lock(env, excl))) goto fail; #ifdef _WIN32 si",
+    "start_line": 7296,
+    "end_line": 7321,
+    "summary": "分配新页面，用于B树增长时的页面分配",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_put、mdb_node_add、mdb_page_split调用，在插入导致分裂时分配新页",
+    "data_structures": [
+      "MDB_page",
+      "MDB_txn",
+      "free list"
+    ],
+    "direct_calls": [
+      "mdb_page_alloc"
+    ],
+    "known_callers": [
+      "_mdb_cursor_put",
+      "mdb_node_add",
+      "mdb_page_split"
+    ]
+  },
+  "mdb_leaf_size": {
+    "file": "mdb.c",
+    "signature": "MDB_reader) + 1; } { #ifdef _WIN32 HANDLE mh; mh = CreateFileMapp",
+    "start_line": 7334,
+    "end_line": 7346,
+    "summary": "计算叶子节点所需空间，用于页面空间管理",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_put和mdb_page_split调用，在插入前检查叶子页面空间",
+    "data_structures": [
+      "MDB_node",
+      "MDB_val",
+      "page layout"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "_mdb_cursor_put",
+      "mdb_page_split"
+    ]
+  },
+  "mdb_branch_size": {
+    "file": "mdb.c",
+    "signature": "e(mh); if (!env->me_txns) goto fail_errno; #else void",
+    "start_line": 7358,
+    "end_line": 7371,
+    "summary": "计算分支节点所需空间，用于页面空间管理",
+    "subsystem": "storage",
+    "scenario": "被mdb_page_split调用，在分裂前检查分支页面空间",
+    "data_structures": [
+      "MDB_node",
+      "page layout"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_split"
+    ]
+  },
+  "mdb_node_add": {
+    "file": "mdb.c",
+    "signature": "xns = m; #endif } if (*excl > 0) { #ifdef _WIN32 BY_HANDLE_FILE_INFORMATION stbuf; struct { DWORD volume; D",
+    "start_line": 7389,
+    "end_line": 7509,
+    "summary": "向页面添加新节点，处理B树节点插入",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_put、mdb_node_move、mdb_page_merge等调用，执行节点插入操作",
+    "data_structures": [
+      "MDB_page",
+      "MDB_node",
+      "MDB_val"
+    ],
+    "direct_calls": [
+      "mdb_dbg_pgno",
+      "mdb_page_new"
+    ],
+    "known_callers": [
+      "_mdb_cursor_put",
+      "mdb_node_move",
+      "mdb_page_merge",
+      "mdb_page_split"
+    ]
+  },
+  "mdb_node_del": {
+    "file": "mdb.c",
+    "signature": "_magic = MDB_MAGIC; env->me_txns->mti_format = MDB",
+    "start_line": 7516,
+    "end_line": 7566,
+    "summary": "从页面删除节点，处理B树节点删除",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_put、mdb_update_key、mdb_node_move等调用，执行节点删除操作",
+    "data_structures": [
+      "MDB_page",
+      "MDB_node"
+    ],
+    "direct_calls": [
+      "mdb_dbg_pgno"
+    ],
+    "known_callers": [
+      "_mdb_cursor_put",
+      "mdb_update_key",
+      "mdb_node_move",
+      "mdb_page_merge",
+      "mdb_cursor_del0"
+    ]
+  },
+  "mdb_node_shrink": {
+    "file": "mdb.c",
+    "signature": "/** Only a subset of the @ref mdb_env flags can be c",
+    "start_line": 7572,
+    "end_line": 7611,
+    "summary": "缩小节点大小，优化页面空间使用",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_del调用，在删除后调整节点空间",
+    "data_structures": [
+      "MDB_node",
+      "page layout"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "_mdb_cursor_del"
+    ]
+  },
+  "mdb_xcursor_init0": {
+    "file": "mdb.c",
+    "signature": "DB_RDONLY) { /* silently ignore WRITEMAP whe",
+    "start_line": 7622,
+    "end_line": 7641,
+    "summary": "初始化扩展游标的第一阶段，设置游标基础结构",
+    "subsystem": "storage",
+    "scenario": "被mdb_cursor_init调用，用于游标初始化过程",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_txn",
+      "MDB_dbi"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_cursor_init"
+    ]
+  },
+  "mdb_xcursor_init1": {
+    "file": "mdb.c",
+    "signature": "ath && env->me_dbflags && env->me_dbiseqs)) { rc = ENOMEM;",
+    "start_line": 7649,
+    "end_line": 7689,
+    "summary": "初始化扩展游标的第二阶段，设置游标导航信息",
+    "subsystem": "storage",
+    "scenario": "被mdb_cursor_next、mdb_cursor_prev、mdb_cursor_set等调用，完成游标初始化",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "B-tree stack"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_cursor_next",
+      "mdb_cursor_prev",
+      "mdb_cursor_set",
+      "mdb_cursor_first",
+      "mdb_cursor_last",
+      "_mdb_cursor_put",
+      "mdb_cursor_del0",
+      "mdb_drop0"
+    ]
+  },
+  "mdb_xcursor_init2": {
+    "file": "mdb.c",
+    "signature": ")) && (txn = calloc(1, size))) { txn->mt_dbs = (MDB_db *)((char *)txn + t",
+    "start_line": 7700,
+    "end_line": 7721,
+    "summary": "初始化扩展游标的第三阶段，设置游标写入相关状态",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_put调用，为写入操作准备游标",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_txn",
+      "dirty page"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "_mdb_cursor_put"
+    ]
+  },
+  "mdb_cursor_init": {
+    "file": "mdb.c",
+    "signature": "; } /** Destroy resources from mdb_env_open(), clear our readers & DBIs */ static void",
+    "start_line": 7724,
+    "end_line": 7749,
+    "summary": "初始化游标，关联事务和数据库",
+    "subsystem": "storage",
+    "scenario": "被mdb_audit、mdb_page_alloc、mdb_freelist_save等调用，用于创建新游标",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_txn",
+      "MDB_dbi"
+    ],
+    "direct_calls": [
+      "mdb_xcursor_init0",
+      "mdb_page_search"
+    ],
+    "known_callers": [
+      "mdb_audit",
+      "mdb_page_alloc",
+      "mdb_freelist_save",
+      "_mdb_txn_commit",
+      "mdb_page_search",
+      "mdb_get",
+      "mdb_cursor_touch",
+      "mdb_cursor_open",
+      "mdb_cursor_renew",
+      "mdb_del0"
+    ]
+  },
+  "mdb_cursor_open": {
+    "file": "mdb.c",
+    "signature": "_key_delete(env->me_txkey); #ifdef _WIN32 /* Delete our key fro",
+    "start_line": 7751,
+    "end_line": 7784,
+    "summary": "打开游标，分配游标资源并初始化",
+    "subsystem": "storage",
+    "scenario": "被mdb_drop、main、dumpit等调用，用于创建可用的游标句柄",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_txn",
+      "MDB_dbi"
+    ],
+    "direct_calls": [
+      "mdb_cursor_init"
+    ],
+    "known_callers": [
+      "mdb_drop",
+      "main",
+      "dumpit",
+      "child"
+    ]
+  },
+  "mdb_cursor_renew": {
+    "file": "mdb.c",
+    "signature": "* our readers), and clear each reader atomically.",
+    "start_line": 7786,
+    "end_line": 7800,
+    "summary": "重用游标，将其关联到新事务",
+    "subsystem": "storage",
+    "scenario": "用于游标复用，避免重复分配",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "mdb_cursor_init"
+    ],
+    "known_callers": []
+  },
+  "mdb_cursor_count": {
+    "file": "mdb.c",
+    "signature": "automatically destroys the mutexes when * the las",
+    "start_line": 7803,
+    "end_line": 7839,
+    "summary": "统计游标当前位置开始的重复键数量",
+    "subsystem": "storage",
+    "scenario": "用于处理重复键的计数操作",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_node",
+      "duplicate data"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_cursor_close": {
+    "file": "mdb.c",
+    "signature": "but not necessarily at once. */",
+    "start_line": 7841,
+    "end_line": 7855,
+    "summary": "关闭游标，释放相关资源",
+    "subsystem": "storage",
+    "scenario": "被mdb_drop、main、delcrs调用，用于清理游标资源",
+    "data_structures": [
+      "MDB_cursor"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_drop",
+      "main",
+      "delcrs"
+    ]
+  },
+  "mdb_cursor_txn": {
+    "file": "mdb.c",
+    "signature": "L) { VGMEMP_DEFINED(&dp->mp_next, sizeo",
+    "start_line": 7857,
+    "end_line": 7862,
+    "summary": "获取游标所属的事务",
+    "subsystem": "storage",
+    "scenario": "用于查询游标关联的事务句柄",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_txn"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_cursor_dbi": {
+    "file": "mdb.c",
+    "signature": "free(dp); } mdb_env_close0(env, 0",
+    "start_line": 7864,
+    "end_line": 7868,
+    "summary": "获取游标所属的数据库句柄",
+    "subsystem": "storage",
+    "scenario": "用于查询游标关联的数据库",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_dbi"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_update_key": {
+    "file": "mdb.c",
+    "signature": "wo items pointing at aligned size_t's */ static int mdb_",
+    "start_line": 7876,
+    "end_line": 7943,
+    "summary": "更新节点键，处理键值修改",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_put、mdb_node_move、mdb_page_merge调用，在节点移动时更新键",
+    "data_structures": [
+      "MDB_node",
+      "MDB_val"
+    ],
+    "direct_calls": [
+      "mdb_dkey",
+      "mdb_node_del",
+      "mdb_page_split"
+    ],
+    "known_callers": [
+      "_mdb_cursor_put",
+      "mdb_node_move",
+      "mdb_page_merge"
+    ]
+  },
+  "mdb_node_move": {
+    "file": "mdb.c",
+    "signature": "len_diff; int diff; p1_lim = (const unsigned char *)a->mv_data; p1 = (c",
+    "start_line": 7966,
+    "end_line": 8185,
+    "summary": "移动节点到新页面，用于页面重平衡",
+    "subsystem": "storage",
+    "scenario": "被mdb_rebalance调用，在页面合并或分裂时移动节点",
+    "data_structures": [
+      "MDB_page",
+      "MDB_node",
+      "MDB_val"
+    ],
+    "direct_calls": [
+      "mdb_page_touch",
+      "mdb_page_search_lowest",
+      "mdb_cursor_copy",
+      "mdb_update_key",
+      "mdb_node_add",
+      "mdb_node_del"
+    ],
+    "known_callers": [
+      "mdb_rebalance"
+    ]
+  },
+  "mdb_page_merge": {
+    "file": "mdb.c",
+    "signature": ">mp_pgno, NUMKEYS(mp))); /* Don't assert on branch pages in",
+    "start_line": 8195,
+    "end_line": 8331,
+    "summary": "合并两个页面，处理B树下溢",
+    "subsystem": "storage",
+    "scenario": "被mdb_rebalance调用，在删除导致页面下溢时合并页面",
+    "data_structures": [
+      "MDB_page",
+      "MDB_node",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "mdb_page_touch",
+      "mdb_node_add",
+      "mdb_cursor_copy",
+      "mdb_page_search_lowest",
+      "mdb_node_del",
+      "mdb_update_key",
+      "mdb_page_loose",
+      "mdb_cursor_pop",
+      "mdb_rebalance"
+    ],
+    "known_callers": [
+      "mdb_rebalance"
+    ]
+  },
+  "mdb_cursor_copy": {
+    "file": "mdb.c",
+    "signature": "BLOCKED) { DPUTS(\"transaction may not be used now\"); return MDB_BA",
+    "start_line": 8337,
+    "end_line": 8354,
+    "summary": "复制游标状态，创建游标副本",
+    "subsystem": "storage",
+    "scenario": "被mdb_node_move、mdb_page_merge、mdb_rebalance等调用，用于保存游标状态",
+    "data_structures": [
+      "MDB_cursor",
+      "B-tree stack"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_node_move",
+      "mdb_page_merge",
+      "mdb_rebalance",
+      "mdb_page_split",
+      "mdb_drop0"
+    ]
+  },
+  "mdb_rebalance": {
+    "file": "mdb.c",
+    "signature": "l data; int exact = 0; uint16_t",
+    "start_line": 8361,
+    "end_line": 8542,
+    "summary": "重新平衡B树页面，维护树结构完整性",
+    "subsystem": "storage",
+    "scenario": "被mdb_page_merge和mdb_cursor_del0调用，在插入或删除后调整页面负载",
+    "data_structures": [
+      "MDB_page",
+      "MDB_node",
+      "B-tree"
+    ],
+    "direct_calls": [
+      "mdb_dbg_pgno",
+      "mdb_midl_append",
+      "mdb_page_get",
+      "mdb_cursor_copy",
+      "mdb_node_move",
+      "mdb_page_merge"
+    ],
+    "known_callers": [
+      "mdb_page_merge",
+      "mdb_cursor_del0"
+    ]
+  },
+  "mdb_cursor_del0": {
+    "file": "mdb.c",
+    "signature": "MDB_TXN_BLOCKED) return MDB_BAD_TXN; md",
+    "start_line": 8545,
+    "end_line": 8648,
+    "summary": "内部删除实现，处理游标删除的核心逻辑",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_del调用，执行实际的删除操作",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_node",
+      "free list"
+    ],
+    "direct_calls": [
+      "mdb_node_del",
+      "mdb_rebalance",
+      "mdb_cursor_sibling",
+      "mdb_xcursor_init1",
+      "mdb_cursor_first"
+    ],
+    "known_callers": [
+      "_mdb_cursor_del"
+    ]
+  },
+  "mdb_del": {
+    "file": "mdb.c",
+    "signature": "mc_ki[mc->mc_top]); if (F_ISSET(leaf->mn_flags, F_DUPDATA)) { if (o",
+    "start_line": 8650,
+    "end_line": 8671,
+    "summary": "从B+树中删除当前游标指向的键值对",
+    "subsystem": "storage",
+    "scenario": "被mdb_cursor_del调用，用于执行删除操作；在事务中删除指定键时触发",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_node",
+      "MDB_page",
+      "MDB_val"
+    ],
+    "direct_calls": [
+      "mdb_dval",
+      "mdb_del0"
+    ],
+    "known_callers": [
+      "main",
+      "child"
+    ]
+  },
+  "mdb_del0": {
+    "file": "mdb.c",
+    "signature": "gs & C_DEL) { mc->mc_flags ^= C_DEL; goto skip; } if (mc->mc_ki[mc->mc_top] + 1u >= NU",
+    "start_line": 8673,
+    "end_line": 8714,
+    "summary": "执行游标删除操作的核心逻辑，处理键删除和页面调整",
+    "subsystem": "storage",
+    "scenario": "被mdb_del和mdb_drop调用，用于实际删除节点并维护B+树结构",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "MDB_node",
+      "MDB_val"
+    ],
+    "direct_calls": [
+      "mdb_cursor_init",
+      "mdb_cursor_set",
+      "_mdb_cursor_del"
+    ],
+    "known_callers": [
+      "mdb_del",
+      "mdb_drop"
+    ]
+  },
+  "mdb_page_split": {
+    "file": "mdb.c",
+    "signature": "EAF(mp)); leaf = NODEPTR(mp, mc->mc_ki[mc->mc_top]); if (F_ISSET(leaf->mn_flags, F_DUPDATA)) { mdb_xcursor_ini",
+    "start_line": 8727,
+    "end_line": 9143,
+    "summary": "在B+树插入时分裂满页，维持树平衡",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_put和mdb_update_key调用，当插入导致页面溢出时触发",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "MDB_node",
+      "MDB_val",
+      "B+树"
+    ],
+    "direct_calls": [
+      "mdb_page_new",
+      "mdb_node_add",
+      "mdb_cursor_copy",
+      "mdb_leaf_size",
+      "mdb_branch_size",
+      "mdb_page_malloc",
+      "mdb_cursor_sibling",
+      "mdb_page_free"
+    ],
+    "known_callers": [
+      "_mdb_cursor_put",
+      "mdb_update_key"
+    ]
+  },
+  "mdb_put": {
+    "file": "mdb.c",
+    "signature": ") { int rc; int exact = 0; int (*mfunc)(MDB_cursor *mc, MDB_val *key, MDB_val *data",
+    "start_line": 9145,
+    "end_line": 9172,
+    "summary": "执行游标操作的核心分发函数，支持多种查询和遍历操作",
+    "subsystem": "storage",
+    "scenario": "被上层数据库操作调用，处理GET、SET、NEXT、PREV等游标操作请求",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_val",
+      "MDB_node",
+      "MDB_page"
+    ],
+    "direct_calls": [
+      "mdb_dval",
+      "mdb_cursor_init",
+      "_mdb_cursor_put"
+    ],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "mdb_env_copythr": {
+    "file": "mdb.c",
+    "signature": "DB_SET_KEY: case MDB_SET_RANGE: if (key == NULL) { rc =",
+    "start_line": 9200,
+    "end_line": 9275,
+    "summary": "处理游标的多值操作（MULTIPLE模式），用于批量数据获取",
+    "subsystem": "storage",
+    "scenario": "在游标操作中处理MDB_GET_MULTIPLE/NEXT_MULTIPLE等批量查询场景",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_val",
+      "MDB_xcursor",
+      "MDB_DUPFIXED"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_env_cthr_toggle": {
+    "file": "mdb.c",
+    "signature": "C_INITIALIZED) { rc = mdb_cursor_sibling(mx, 0); if (rc",
+    "start_line": 9282,
+    "end_line": 9296,
+    "summary": "切换游标兄弟页面，支持向前/向后遍历",
+    "subsystem": "storage",
+    "scenario": "被mdb_env_cwalk和mdb_env_copyfd1调用，在游标移动时处理页面边界",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_page",
+      "mdb_cursor_sibling"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_env_cwalk",
+      "mdb_env_copyfd1"
+    ]
+  },
+  "mdb_env_cwalk": {
+    "file": "mdb.c",
+    "signature": "ase MDB_FIRST: rc = mdb_cursor_first(mc, key, data); break; cas",
+    "start_line": 9303,
+    "end_line": 9456,
+    "summary": "处理游标的DUP排序数据遍历，支持重复键的子游标操作",
+    "subsystem": "storage",
+    "scenario": "被mdb_env_copyfd1调用，在复制或遍历时处理重复键的数据集",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_node",
+      "MDB_val",
+      "F_DUPDATA",
+      "MDB_xcursor"
+    ],
+    "direct_calls": [
+      "mdb_page_get",
+      "mdb_page_search_root",
+      "mdb_page_copy",
+      "mdb_env_cthr_toggle",
+      "mdb_cursor_pop"
+    ],
+    "known_callers": [
+      "mdb_env_copyfd1"
+    ]
+  },
+  "mdb_env_copyfd1": {
+    "file": "mdb.c",
+    "signature": "w database, cursor has nothing to point to */ mc->mc_snu",
+    "start_line": 9459,
+    "end_line": 9587,
+    "summary": "执行游标插入操作，处理键存在性检查和页面分配",
+    "subsystem": "storage",
+    "scenario": "被mdb_env_copyfd2调用，在数据插入路径中定位游标并准备写入",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_val",
+      "MDB_page",
+      "MDB_NOOVERWRITE",
+      "MDB_APPEND"
+    ],
+    "direct_calls": [
+      "mdb_txn_begin",
+      "mdb_env_init_meta0",
+      "mdb_cursor_init",
+      "mdb_cursor_get",
+      "mdb_env_cwalk",
+      "mdb_env_cthr_toggle",
+      "_mdb_txn_abort"
+    ],
+    "known_callers": [
+      "mdb_env_copyfd2"
+    ]
+  },
+  "mdb_env_copyfd0": {
+    "file": "mdb.c",
+    "signature": "return rc2; } return MDB_SUCCESS; } more: leaf",
+    "start_line": 9590,
+    "end_line": 9687,
+    "summary": "处理重复排序数据的插入逻辑，包括子页面和子数据库转换",
+    "subsystem": "storage",
+    "scenario": "被mdb_env_copyfd2调用，当插入数据到重复键集合时管理子数据结构",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_node",
+      "MDB_val",
+      "F_DUPDATA",
+      "P_SUBP",
+      "MDB_db"
+    ],
+    "direct_calls": [
+      "mdb_txn_begin",
+      "mdb_txn_end",
+      "mdb_txn_renew0",
+      "mdb_fsize",
+      "_mdb_txn_abort"
+    ],
+    "known_callers": [
+      "mdb_env_copyfd2"
+    ]
+  },
+  "mdb_env_copyfd2": {
+    "file": "mdb.c",
+    "signature": "p) |= P_LEAF2; fp->mp_pad = data->mv_size; xdata.mv_size += 2",
+    "start_line": 9689,
+    "end_line": 9696,
+    "summary": "处理固定大小重复数据的子页面分配和初始化",
+    "subsystem": "storage",
+    "scenario": "被mdb_env_copyfd和mdb_env_copy2调用，为MDB_DUPFIXED数据准备存储空间",
+    "data_structures": [
+      "MDB_page",
+      "P_LEAF2",
+      "mp_pad",
+      "MDB_DUPFIXED"
+    ],
+    "direct_calls": [
+      "mdb_env_copyfd1",
+      "mdb_env_copyfd0"
+    ],
+    "known_callers": [
+      "mdb_env_copyfd",
+      "mdb_env_copy2"
+    ]
+  },
+  "mdb_env_copyfd": {
+    "file": "mdb.c",
+    "signature": "ZE) + (dkey.mv_size & 1) + (data->mv_size &",
+    "start_line": 9698,
+    "end_line": 9702,
+    "summary": "计算变长重复数据节点的存储大小，包括对齐开销",
+    "subsystem": "storage",
+    "scenario": "在子页面分配时被调用，用于确定非固定大小重复数据所需空间",
+    "data_structures": [
+      "MDB_val",
+      "indx_t",
+      "NODESIZE",
+      "对齐计算"
+    ],
+    "direct_calls": [
+      "mdb_env_copyfd2"
+    ],
+    "known_callers": []
+  },
+  "mdb_env_copy2": {
+    "file": "mdb.c",
+    "signature": "- PAGEBASE; olddata.mv_size = xdata.mv_size; /* pretend olddata is fp *",
+    "start_line": 9704,
+    "end_line": 9722,
+    "summary": "处理子数据库数据的存储转换和页面管理",
+    "subsystem": "storage",
+    "scenario": "被mdb_env_copy调用，当重复数据需要转换为子数据库时进行结构转换",
+    "data_structures": [
+      "MDB_node",
+      "F_SUBDATA",
+      "MDB_db",
+      "子数据库"
+    ],
+    "direct_calls": [
+      "mdb_fname_init",
+      "mdb_fopen",
+      "mdb_env_copyfd2"
+    ],
+    "known_callers": [
+      "mdb_env_copy"
+    ]
+  },
+  "mdb_env_copy": {
+    "file": "mdb.c",
+    "signature": "= fp->mp_pad; if (SIZELEFT(fp) < offset) { o",
+    "start_line": 9724,
+    "end_line": 9728,
+    "summary": "检查固定大小重复数据子页面的空间余量",
+    "subsystem": "storage",
+    "scenario": "在子页面插入时被调用，评估MDB_DUPFIXED页面是否有足够空间",
+    "data_structures": [
+      "MDB_page",
+      "mp_pad",
+      "SIZELEFT",
+      "MDB_DUPFIXED"
+    ],
+    "direct_calls": [
+      "mdb_env_copy2"
+    ],
+    "known_callers": []
+  },
+  "mdb_env_set_flags": {
+    "file": "mdb.c",
+    "signature": "reak; } /* FALLTHRU */ /* Big enough MDB_DUPFIXED sub-page */",
+    "start_line": 9730,
+    "end_line": 9740,
+    "summary": "标记子页面为脏页并设置游标指向",
+    "subsystem": "storage",
+    "scenario": "在重复数据操作中被调用，用于更新子页面的状态和游标关联",
+    "data_structures": [
+      "MDB_page",
+      "P_DIRTY",
+      "MDB_cursor",
+      "MDB_xcursor"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_env_get_flags": {
+    "file": "mdb.c",
+    "signature": "p; flags |= F_DUPDATA; goto put_sub; } xdat",
+    "start_line": 9742,
+    "end_line": 9750,
+    "summary": "准备子数据库数据结构，处理重复数据到子DB的转换",
+    "subsystem": "storage",
+    "scenario": "在子页面过大需要转换为子数据库时调用，初始化子DB元数据",
+    "data_structures": [
+      "MDB_db",
+      "F_DUPDATA",
+      "F_SUBDATA",
+      "子数据库转换"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_env_set_userctx": {
+    "file": "mdb.c",
+    "signature": "mv_size > env->me_nodemax) { /* Too big for a sub-",
+    "start_line": 9752,
+    "end_line": 9759,
+    "summary": "处理过大子页面到子数据库的转换逻辑",
+    "subsystem": "storage",
+    "scenario": "当重复数据超过节点大小时被调用，触发子数据库创建流程",
+    "data_structures": [
+      "MDB_env",
+      "me_nodemax",
+      "P_SUBP",
+      "子数据库"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_env_get_userctx": {
+    "file": "mdb.c",
+    "signature": "mc_db->md_flags & MDB_DUPFIXED) { fp_flag",
+    "start_line": 9761,
+    "end_line": 9765,
+    "summary": "配置固定大小重复数据的子数据库标志和填充值",
+    "subsystem": "storage",
+    "scenario": "在创建子数据库时被调用，设置MDB_DUPFIXED相关属性",
+    "data_structures": [
+      "MDB_db",
+      "md_flags",
+      "MDB_DUPFIXED",
+      "MDB_INTEGERDUP",
+      "mp_pad"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_env_set_assert": {
+    "file": "mdb.c",
+    "signature": "ad; dummy.md_flags = MDB_DUPFIXED; if (mc->mc_db->md_f",
+    "start_line": 9767,
+    "end_line": 9776,
+    "summary": "初始化子数据库的元数据默认值",
+    "subsystem": "storage",
+    "scenario": "在子数据库创建过程中被调用，设置未指定属性的默认值",
+    "data_structures": [
+      "MDB_db",
+      "md_pad",
+      "md_flags",
+      "md_depth",
+      "元数据初始化"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_env_get_path": {
+    "file": "mdb.c",
+    "signature": "dummy.md_flags = 0; } dummy.md_depth = 1;",
+    "start_line": 9778,
+    "end_line": 9786,
+    "summary": "设置子数据库的统计信息初始值",
+    "subsystem": "storage",
+    "scenario": "在子数据库创建时被调用，初始化页面计数和条目数",
+    "data_structures": [
+      "MDB_db",
+      "md_leaf_pages",
+      "md_entries",
+      "NUMKEYS"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_env_get_fd": {
+    "file": "mdb.c",
+    "signature": "s = 0; dummy.md_entries = NUMKEYS(fp); xdata.mv_size",
+    "start_line": 9788,
+    "end_line": 9796,
+    "summary": "为子数据库分配新页面并计算空间偏移",
+    "subsystem": "storage",
+    "scenario": "在子数据库转换中被调用，分配存储子DB元数据的页面",
+    "data_structures": [
+      "MDB_db",
+      "mdb_page_alloc",
+      "env->me_psize",
+      "空间偏移计算"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_stat0": {
+    "file": "mdb.c",
+    "signature": ")) return rc; offset = env->me_psize - olddata.mv_size;",
+    "start_line": 9804,
+    "end_line": 9815,
+    "summary": "复制子页面内容到新页面并调整指针数组",
+    "subsystem": "storage",
+    "scenario": "被mdb_env_stat和mdb_stat调用，在页面重组时迁移数据",
+    "data_structures": [
+      "MDB_page",
+      "METADATA",
+      "MP_PTRS",
+      "NUMKEYS",
+      "指针调整"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_env_stat",
+      "mdb_stat"
+    ]
+  },
+  "mdb_env_stat": {
+    "file": "mdb.c",
+    "signature": "if (fp_flags & P_LEAF2) { memcpy(METADATA(mp),",
+    "start_line": 9817,
+    "end_line": 9828,
+    "summary": "复制固定大小重复数据的叶子页面内容",
+    "subsystem": "storage",
+    "scenario": "被main函数调用，在数据库统计或页面复制时处理P_LEAF2页面",
+    "data_structures": [
+      "MDB_page",
+      "P_LEAF2",
+      "mp_pad",
+      "METADATA"
+    ],
+    "direct_calls": [
+      "mdb_env_pick_meta",
+      "mdb_stat0"
+    ],
+    "known_callers": [
+      "main"
+    ]
+  },
+  "mdb_env_info": {
+    "file": "mdb.c",
+    "signature": "ize - MP_UPPER(fp) - PAGEBASE); memcpy((char *)MP_",
+    "start_line": 9830,
+    "end_line": 9847,
+    "summary": "复制页面数据并调整内部指针偏移",
+    "subsystem": "storage",
+    "scenario": "被dumpit工具调用，在页面转储或重组时迁移页面内容",
+    "data_structures": [
+      "MDB_page",
+      "MP_UPPER",
+      "MP_PTRS",
+      "PAGEBASE",
+      "指针迁移"
+    ],
+    "direct_calls": [
+      "mdb_env_pick_meta"
+    ],
+    "known_callers": [
+      "dumpit"
+    ]
+  },
+  "mdb_default_cmp": {
+    "file": "mdb.c",
+    "signature": "DB_INCOMPATIBLE; /* overflow page overwrites need spe",
+    "start_line": 9856,
+    "end_line": 9870,
+    "summary": "处理溢出页面的覆盖写入和空间管理",
+    "subsystem": "storage",
+    "scenario": "被mdb_dbi_open调用，当更新操作需要重用或调整溢出页面时触发",
+    "data_structures": [
+      "MDB_page",
+      "F_BIGDATA",
+      "溢出页面",
+      "OVPAGES",
+      "P_DIRTY"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_dbi_open"
+    ]
+  },
+  "mdb_dbi_open": {
+    "file": "mdb.c",
+    "signature": "s) { if (!(omp->mp_flags & P_DIRTY) && (level || (env->me_flags & MDB_WR",
+    "start_line": 9872,
+    "end_line": 9991,
+    "summary": "管理溢出页面的脏页状态和事务间写入",
+    "subsystem": "storage",
+    "scenario": "被main和child进程调用，在打开数据库时处理溢出页面的写入冲突",
+    "data_structures": [
+      "MDB_page",
+      "P_DIRTY",
+      "MDB_TXN",
+      "mdb_page_unspill",
+      "脏页列表"
+    ],
+    "direct_calls": [
+      "mdb_default_cmp",
+      "mdb_cursor_init",
+      "mdb_cursor_set",
+      "_mdb_cursor_put"
+    ],
+    "known_callers": [
+      "main",
+      "child"
+    ]
+  },
+  "mdb_stat": {
+    "file": "mdb.c",
+    "signature": "rc = mdb_page_split(mc, key, rdata, P_INVALID, nflags); } e",
+    "start_line": 9993,
+    "end_line": 10009,
+    "summary": "在叶子页面中插入新节点并调整相关游标",
+    "subsystem": "storage",
+    "scenario": "被main和dumpit调用，在数据插入时处理页面分裂或节点添加",
+    "data_structures": [
+      "MDB_cursor",
+      "mdb_page_split",
+      "mdb_node_add",
+      "游标调整"
+    ],
+    "direct_calls": [
+      "mdb_cursor_init",
+      "mdb_stat0"
+    ],
+    "known_callers": [
+      "main",
+      "dumpit"
+    ]
+  },
+  "mdb_dbi_close": {
+    "file": "mdb.c",
+    "signature": "(m2 = mc->mc_txn->mt_cursors[dbi]; m2; m2=m2->",
+    "start_line": 10011,
+    "end_line": 10026,
+    "summary": "遍历并更新同一事务中指向相同页面的其他游标",
+    "subsystem": "storage",
+    "scenario": "被mdb_drop、main和child调用，在页面修改后同步相关游标状态",
+    "data_structures": [
+      "MDB_cursor",
+      "mt_cursors",
+      "XCURSOR_REFRESH",
+      "游标同步"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_drop",
+      "main",
+      "child"
+    ]
+  },
+  "mdb_dbi_flags": {
+    "file": "mdb.c",
+    "signature": "DB_SUCCESS) { /* Now store the actual data in the child DB. Note",
+    "start_line": 10028,
+    "end_line": 10035,
+    "summary": "在子数据库中存储用户数据到键字段，处理重复数据",
+    "subsystem": "storage",
+    "scenario": "被dumpit工具调用，在子数据库操作中说明数据存储的特殊性",
+    "data_structures": [
+      "子数据库",
+      "MDB_DUPSORT",
+      "键值存储",
+      "数据大小限制"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "dumpit"
+    ]
+  },
+  "mdb_drop0": {
+    "file": "mdb.c",
+    "signature": "are all zero size. */ if (do_sub) { in",
+    "start_line": 10042,
+    "end_line": 10134,
+    "summary": "处理子数据库的数据插入和游标同步",
+    "subsystem": "storage",
+    "scenario": "被_mdb_cursor_del和mdb_drop调用，在删除或更新子数据时管理子DB游标",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_xcursor",
+      "MDB_db",
+      "游标初始化",
+      "条目计数"
+    ],
+    "direct_calls": [
+      "mdb_page_search",
+      "mdb_cursor_pop",
+      "mdb_cursor_copy",
+      "mdb_page_get",
+      "mdb_midl_append_range",
+      "mdb_xcursor_init1",
+      "mdb_midl_need",
+      "mdb_cursor_sibling",
+      "mdb_midl_append"
+    ],
+    "known_callers": [
+      "_mdb_cursor_del",
+      "mdb_drop"
+    ]
+  },
+  "mdb_drop": {
+    "file": "mdb.c",
+    "signature": "xist before, * make sure the cursor is marked",
+    "start_line": 10136,
+    "end_line": 10186,
+    "summary": "完成游标插入操作，处理多值插入和状态标记",
+    "subsystem": "storage",
+    "scenario": "在_mdb_cursor_put之后被调用，完成插入流程并返回结果",
+    "data_structures": [
+      "MDB_cursor",
+      "C_INITIALIZED",
+      "MDB_MULTIPLE",
+      "事务错误处理"
+    ],
+    "direct_calls": [
+      "mdb_cursor_open",
+      "mdb_drop0",
+      "mdb_del0",
+      "mdb_dbi_close",
+      "mdb_cursor_close"
+    ],
+    "known_callers": []
+  },
+  "mdb_set_compare": {
+    "file": "mdb.c",
+    "signature": "TXN; if (!(mc->mc_flags & C_INITIALIZED)) return EINVAL; if",
+    "start_line": 10188,
+    "end_line": 10195,
+    "summary": "检查游标删除操作的前置条件",
+    "subsystem": "storage",
+    "scenario": "在删除操作开始时被调用，验证游标状态和事务权限",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_TXN_RDONLY",
+      "C_INITIALIZED",
+      "NUMKEYS"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_set_dupsort": {
+    "file": "mdb.c",
+    "signature": "b_page_spill(mc, NULL, NULL))) return rc; rc = mdb_cursor_touc",
+    "start_line": 10197,
+    "end_line": 10204,
+    "summary": "准备删除操作的页面环境，确保页面可写",
+    "subsystem": "storage",
+    "scenario": "在删除过程中被调用，执行页面溢出检查和触摸操作",
+    "data_structures": [
+      "MDB_cursor",
+      "mdb_page_spill",
+      "mdb_cursor_touch",
+      "P_LEAF"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_set_relfunc": {
+    "file": "mdb.c",
+    "signature": "goto del_key; leaf = NODEPTR(mp, mc->mc_ki[mc->mc_top]); if (F",
+    "start_line": 10206,
+    "end_line": 10213,
+    "summary": "处理重复数据的删除逻辑，区分节点删除和子数据删除",
+    "subsystem": "storage",
+    "scenario": "在删除重复数据时被调用，根据F_DUPDATA标志选择删除策略",
+    "data_structures": [
+      "MDB_node",
+      "F_DUPDATA",
+      "MDB_NODUPDATA",
+      "条目计数调整"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_set_relctx": {
+    "file": "mdb.c",
+    "signature": "*/ mc->mc_db->md_entries -= mc->mc_xcursor->mx_db.md_",
+    "start_line": 10215,
+    "end_line": 10222,
+    "summary": "管理子数据库游标状态和数据更新",
+    "subsystem": "storage",
+    "scenario": "在删除子数据时被调用，处理子DB游标的初始化和数据同步",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_xcursor",
+      "F_SUBDATA",
+      "子数据库信息更新"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_env_get_maxkeysize": {
+    "file": "mdb.c",
+    "signature": "{ mc->mc_xcursor->mx_cursor.mc_pg[0] = NOD",
+    "start_line": 10224,
+    "end_line": 10228,
+    "summary": "设置子游标的当前页面指针",
+    "subsystem": "storage",
+    "scenario": "被child进程调用，在子数据库操作中初始化游标页面指向",
+    "data_structures": [
+      "MDB_cursor",
+      "NODEDATA",
+      "子游标管理"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "mdb_reader_list": {
+    "file": "mdb.c",
+    "signature": "_cursor_del(&mc->mc_xcursor->mx_cursor, MDB_NOSPILL); if (rc) re",
+    "start_line": 10230,
+    "end_line": 10266,
+    "summary": "执行子游标的删除操作并处理结果",
+    "subsystem": "storage",
+    "scenario": "在删除重复数据时被调用，触发子游标的删除并更新父结构",
+    "data_structures": [
+      "MDB_cursor",
+      "_mdb_cursor_del",
+      "子数据库条目",
+      "页面收缩"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_pid_insert": {
+    "file": "mdb.c",
+    "signature": "e; if (m2->mc_pg[mc->mc_top] == mp) { XCURSOR_REFR",
+    "start_line": 10271,
+    "end_line": 10306,
+    "summary": "刷新其他游标在修改页面上的位置",
+    "subsystem": "storage",
+    "scenario": "被mdb_reader_check0调用，在页面结构变化后更新相关游标",
+    "data_structures": [
+      "MDB_cursor",
+      "XCURSOR_REFRESH",
+      "游标页面同步"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_reader_check0"
+    ]
+  },
+  "mdb_reader_check": {
+    "file": "mdb.c",
+    "signature": "record */ else if ((leaf->mn_flags ^ flags) & F_SUB",
+    "start_line": 10308,
+    "end_line": 10316,
+    "summary": "验证删除操作的数据类型兼容性",
+    "subsystem": "storage",
+    "scenario": "在删除时被调用，检查F_SUBDATA标志是否匹配操作类型",
+    "data_structures": [
+      "MDB_node",
+      "F_SUBDATA",
+      "MDB_INCOMPATIBLE",
+      "数据类型检查"
+    ],
+    "direct_calls": [
+      "mdb_reader_check0"
+    ],
+    "known_callers": []
+  },
+  "mdb_reader_check0": {
+    "file": "mdb.c",
+    "signature": ") { MDB_page *omp; pgno_t pg; memcpy(&pg, NODEDATA(leaf), sizeof(p",
+    "start_line": 10319,
+    "end_line": 10369,
+    "summary": "释放溢出页面并添加到空闲列表",
+    "subsystem": "storage",
+    "scenario": "被mdb_reader_check和mdb_mutex_failed调用，删除大数据节点时清理溢出页",
+    "data_structures": [
+      "MDB_page",
+      "F_BIGDATA",
+      "mdb_ovpage_free",
+      "溢出页面管理"
+    ],
+    "direct_calls": [
+      "mdb_pid_insert",
+      "mdb_reader_pid",
+      "mdb_mutex_failed"
+    ],
+    "known_callers": [
+      "mdb_reader_check",
+      "mdb_mutex_failed"
+    ]
+  },
+  "mdb_mutex_failed": {
+    "file": "mdb.c",
+    "signature": "; np->mp_upper = mc->mc_txn->mt_env->me_psize - PAGEBASE; if (IS_BRANCH(np)",
+    "start_line": 10379,
+    "end_line": 10419,
+    "summary": "初始化新分配页面的元数据并更新数据库统计",
+    "subsystem": "storage",
+    "scenario": "被mdb_reader_check0调用，在页面分配后设置页面属性和计数",
+    "data_structures": [
+      "MDB_page",
+      "P_DIRTY",
+      "mp_upper",
+      "页面类型统计"
+    ],
+    "direct_calls": [
+      "mdb_env_pick_meta",
+      "mdb_reader_check0",
+      "mdb_strerror"
+    ],
+    "known_callers": [
+      "mdb_reader_check0"
+    ]
+  },
+  "utf8_to_utf16": {
+    "file": "mdb.c",
+    "signature": "data); if (sz > env->me_nodemax) { /* put on overflow page */ sz -=",
+    "start_line": 10424,
+    "end_line": 10447,
+    "summary": "计算分支节点大小，考虑溢出页和内存对齐",
+    "subsystem": "storage",
+    "scenario": "被 mdb_fname_init 调用，用于在 B 树操作中计算节点存储空间",
+    "data_structures": [
+      "MDB_node",
+      "pgno_t",
+      "indx_t",
+      "overflow page"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_fname_init"
+    ]
+  },
+  "sighandle": {
+    "file": "mdb_copy.c",
+    "signature": "ation, are permitted only as au",
+    "start_line": 25,
+    "end_line": 28,
+    "summary": "信号处理函数，用于处理进程中断信号",
+    "subsystem": "transaction",
+    "scenario": "被 mdb_copy 主函数注册，在数据库复制过程中捕获 SIGINT/SIGTERM 等信号",
+    "data_structures": [
+      "signal"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "main": {
+    "file": "mtest6.c",
+    "signature": "tively, at * <http://www.OpenLDA",
+    "start_line": 29,
+    "end_line": 141,
+    "summary": "LMDB 测试程序的主函数，执行各种数据库操作测试",
+    "subsystem": "test",
+    "scenario": "作为独立的测试程序运行，验证 LMDB 库的基本功能、事务和游标操作",
+    "data_structures": [
+      "MDB_env",
+      "MDB_txn",
+      "MDB_dbi",
+      "MDB_val",
+      "MDB_cursor",
+      "MDB_stat"
+    ],
+    "direct_calls": [
+      "mdb_env_create",
+      "mdb_env_set_mapsize",
+      "mdb_env_set_maxdbs",
+      "mdb_env_open",
+      "mdb_txn_begin",
+      "mdb_dbi_open",
+      "mdb_cursor_open",
+      "mdb_stat",
+      "mdb_cursor_put",
+      "mdb_cursor_get",
+      "mdb_dkey",
+      "mdb_cursor_close",
+      "mdb_txn_commit",
+      "mdb_del",
+      "mdb_txn_abort",
+      "mdb_env_stat",
+      "mdb_dbi_close",
+      "mdb_env_close"
+    ],
+    "known_callers": []
+  },
+  "dumpsig": {
+    "file": "mdb_dump.c",
+    "signature": "al.h> #include \"lmdb.h\" #ifdef",
+    "start_line": 49,
+    "end_line": 52,
+    "summary": "设置全局信号标志，用于中断数据库转储过程",
+    "subsystem": "tool",
+    "scenario": "被 mdb_dump 主函数注册为信号处理器，在转储时响应中断",
+    "data_structures": [
+      "sig_atomic_t"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "hex": {
+    "file": "mdb_dump.c",
+    "signature": "1 static int mode; typedef struc",
+    "start_line": 56,
+    "end_line": 60,
+    "summary": "将单字节数据转换为十六进制字符并输出",
+    "subsystem": "tool",
+    "scenario": "被 text 和 byte 函数调用，用于转储数据时的十六进制格式化",
+    "data_structures": [
+      "MDB_val"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "text",
+      "byte"
+    ]
+  },
+  "text": {
+    "file": "mdb_dump.c",
+    "signature": "dbflags[] = { { MDB_REVERSE",
+    "start_line": 62,
+    "end_line": 81,
+    "summary": "以可打印字符或转义序列形式输出键值数据",
+    "subsystem": "tool",
+    "scenario": "被 dumpit 函数调用，用于人类可读的数据库转储格式",
+    "data_structures": [
+      "MDB_val",
+      "isprint"
+    ],
+    "direct_calls": [
+      "hex"
+    ],
+    "known_callers": [
+      "dumpit"
+    ]
+  },
+  "byte": {
+    "file": "mdb_dump.c",
+    "signature": "d dumpsig( int sig ) { gotsi",
+    "start_line": 83,
+    "end_line": 94,
+    "summary": "以原始十六进制字节形式输出键值数据",
+    "subsystem": "tool",
+    "scenario": "被 dumpit 函数调用，用于二进制兼容的数据库转储格式",
+    "data_structures": [
+      "MDB_val"
+    ],
+    "direct_calls": [
+      "hex"
+    ],
+    "known_callers": [
+      "dumpit"
+    ]
+  },
+  "dumpit": {
+    "file": "mdb_dump.c",
+    "signature": "; } static void text(MDB_val *v) { unsigned char *c, *e",
+    "start_line": 97,
+    "end_line": 156,
+    "summary": "执行数据库转储核心逻辑，输出 BDB 兼容格式",
+    "subsystem": "tool",
+    "scenario": "被 mdb_dump 主函数调用，遍历游标并格式化每个键值对",
+    "data_structures": [
+      "MDB_cursor",
+      "MDB_stat",
+      "MDB_val",
+      "MDB_dbi",
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "mdb_dbi_flags",
+      "mdb_stat",
+      "mdb_env_info",
+      "mdb_txn_env",
+      "mdb_cursor_open",
+      "mdb_cursor_get",
+      "text",
+      "byte"
+    ],
+    "known_callers": []
+  },
+  "usage": {
+    "file": "mdb_stat.c",
+    "signature": "#include <unistd.h> #include",
+    "start_line": 38,
+    "end_line": 42,
+    "summary": "",
+    "subsystem": "",
+    "scenario": "",
+    "data_structures": [],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "readhdr": {
+    "file": "mdb_load.c",
+    "signature": "#ifdef _WIN32 #define Z",
+    "start_line": 68,
+    "end_line": 156,
+    "summary": "解析数据库转储文件的头部信息，验证版本和格式",
+    "subsystem": "tool",
+    "scenario": "被 mdb_load 主函数调用，在加载数据前读取元数据",
+    "data_structures": [
+      "MDB_REVERSEKEY",
+      "MDB_DUPSORT",
+      "MDB_INTEGERKEY"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "badend": {
+    "file": "mdb_load.c",
+    "signature": "dbflags[i].len] == '=') {",
+    "start_line": 158,
+    "end_line": 162,
+    "summary": "报告输入意外结束的错误，用于数据加载过程",
+    "subsystem": "tool",
+    "scenario": "被 readline 函数调用，当输入文件格式错误时退出",
+    "data_structures": [],
+    "direct_calls": [],
+    "known_callers": [
+      "readline"
+    ]
+  },
+  "unhex": {
+    "file": "mplay.c",
+    "signature": "*rcrs; } crspair; typedef struct tx",
+    "start_line": 86,
+    "end_line": 98,
+    "summary": "",
+    "subsystem": "",
+    "scenario": "",
+    "data_structures": [],
+    "direct_calls": [],
+    "known_callers": [
+      "readline",
+      "inhex"
+    ]
+  },
+  "readline": {
+    "file": "mdb_load.c",
+    "signature": "} else { *ptr = '\\0'; fprintf(stderr,",
+    "start_line": 178,
+    "end_line": 284,
+    "summary": "从输入流读取一行数据，支持可打印和十六进制格式解析",
+    "subsystem": "tool",
+    "scenario": "被 mdb_load 主函数循环调用，逐行加载键值记录",
+    "data_structures": [
+      "MDB_val",
+      "EOF",
+      "NOHDR"
+    ],
+    "direct_calls": [
+      "badend",
+      "unhex"
+    ],
+    "known_callers": []
+  },
+  "greater": {
+    "file": "mdb_load.c",
+    "signature": "Eof = 1; badend(); return EOF; }",
+    "start_line": 292,
+    "end_line": 295,
+    "summary": "比较函数，始终返回 1（用于特定加载顺序）",
+    "subsystem": "tool",
+    "scenario": "被 mdb_load 主函数用作回调，影响记录插入顺序",
+    "data_structures": [
+      "MDB_val"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "prstat": {
+    "file": "mdb_stat.c",
+    "signature": "and binary forms, with or without",
+    "start_line": 26,
+    "end_line": 36,
+    "summary": "打印数据库统计信息，包括树深度和页面分布",
+    "subsystem": "tool",
+    "scenario": "被 mdb_stat 主函数调用，格式化并输出 MDB_stat 结构",
+    "data_structures": [
+      "MDB_stat",
+      "ms_psize",
+      "ms_depth",
+      "ms_branch_pages",
+      "ms_leaf_pages"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "mdb_midl_search": {
+    "file": "midl.c",
+    "signature": "ndation. * Portions Copyright 2001-2021 Howard Chu",
+    "start_line": 34,
+    "end_line": 67,
+    "summary": "在 ID 列表中进行二分查找，返回匹配位置或插入点",
+    "subsystem": "storage",
+    "scenario": "被页面管理函数调用，用于查找页面 ID 在列表中的位置",
+    "data_structures": [
+      "MDB_IDL",
+      "MDB_ID"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_spill",
+      "mdb_page_unspill",
+      "mdb_page_get",
+      "mdb_ovpage_free",
+      "mdb_midl_insert"
+    ]
+  },
+  "mdb_midl_insert": {
+    "file": "midl.c",
+    "signature": "<limits.h> #include <string.h> #include <stdl",
+    "start_line": 70,
+    "end_line": 101,
+    "summary": "向 ID 列表插入一个 ID，保持列表有序",
+    "subsystem": "storage",
+    "scenario": "被页面操作函数调用，用于维护页面 ID 集合",
+    "data_structures": [
+      "MDB_IDL",
+      "MDB_ID",
+      "MDB_IDL_DB_MAX"
+    ],
+    "direct_calls": [
+      "mdb_midl_search"
+    ],
+    "known_callers": []
+  },
+  "mdb_midl_alloc": {
+    "file": "midl.c",
+    "signature": "not found, returns first positio",
+    "start_line": 104,
+    "end_line": 112,
+    "summary": "分配一个 ID 列表，并初始化其头部",
+    "subsystem": "storage",
+    "scenario": "被页面分配和事务开始函数调用，创建新的 ID 列表",
+    "data_structures": [
+      "MDB_IDL",
+      "malloc"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_spill",
+      "mdb_page_alloc",
+      "mdb_txn_begin",
+      "mdb_env_open"
+    ]
+  },
+  "mdb_midl_free": {
+    "file": "midl.c",
+    "signature": "0 < n ) { unsigned pivot = n >",
+    "start_line": 114,
+    "end_line": 118,
+    "summary": "释放 ID 列表占用的内存",
+    "subsystem": "storage",
+    "scenario": "被事务结束和环境关闭函数调用，清理 ID 列表资源",
+    "data_structures": [
+      "MDB_IDL",
+      "free"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_txn_end",
+      "_mdb_txn_commit",
+      "mdb_env_close0"
+    ]
+  },
+  "mdb_midl_shrink": {
+    "file": "midl.c",
+    "signature": "1; val = CMP( ids[cursor], id );",
+    "start_line": 120,
+    "end_line": 129,
+    "summary": "收缩 ID 列表容量以节省内存",
+    "subsystem": "storage",
+    "scenario": "被事务提交函数调用，在事务完成后缩减列表",
+    "data_structures": [
+      "MDB_IDL",
+      "MDB_IDL_UM_MAX",
+      "realloc"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_txn_end",
+      "_mdb_txn_commit"
+    ]
+  },
+  "mdb_midl_grow": {
+    "file": "midl.c",
+    "signature": "eturn cursor; } #if 0 /* superseded by append/sor",
+    "start_line": 131,
+    "end_line": 141,
+    "summary": "扩展 ID 列表容量以容纳更多元素",
+    "subsystem": "storage",
+    "scenario": "被追加函数调用，当列表空间不足时动态扩容",
+    "data_structures": [
+      "MDB_IDL",
+      "realloc",
+      "ENOMEM"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_midl_append",
+      "mdb_midl_append_list",
+      "mdb_midl_append_range"
+    ]
+  },
+  "mdb_midl_need": {
+    "file": "midl.c",
+    "signature": "or */ return -2; } if ( x <= ids[0] && ids[",
+    "start_line": 143,
+    "end_line": 155,
+    "summary": "确保 ID 列表有足够容量，必要时扩容",
+    "subsystem": "storage",
+    "scenario": "被页面分配和释放函数调用，预分配 ID 列表空间",
+    "data_structures": [
+      "MDB_IDL",
+      "realloc",
+      "ENOMEM"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_alloc",
+      "mdb_page_touch",
+      "mdb_freelist_save",
+      "mdb_ovpage_free",
+      "mdb_drop0"
+    ]
+  },
+  "mdb_midl_append": {
+    "file": "midl.c",
+    "signature": "= id; } return 0; } #endif MDB_IDL mdb_mid",
+    "start_line": 157,
+    "end_line": 169,
+    "summary": "向 ID 列表追加一个 ID，更新计数",
+    "subsystem": "storage",
+    "scenario": "被页面松散和溢出处理函数调用，快速添加 ID",
+    "data_structures": [
+      "MDB_IDL",
+      "MDB_ID",
+      "MDB_IDL_UM_MAX"
+    ],
+    "direct_calls": [
+      "mdb_midl_grow"
+    ],
+    "known_callers": [
+      "mdb_page_loose",
+      "mdb_page_spill",
+      "mdb_rebalance",
+      "mdb_drop0"
+    ]
+  },
+  "mdb_midl_append_list": {
+    "file": "midl.c",
+    "signature": "free(ids-1); } void mdb_midl_shrink( MDB_IDL *idp )",
+    "start_line": 171,
+    "end_line": 183,
+    "summary": "将一个 ID 列表追加到另一个列表后",
+    "subsystem": "storage",
+    "scenario": "被事务提交函数调用，合并 ID 列表",
+    "data_structures": [
+      "MDB_IDL",
+      "memcpy"
+    ],
+    "direct_calls": [
+      "mdb_midl_grow"
+    ],
+    "known_callers": [
+      "_mdb_txn_commit"
+    ]
+  },
+  "mdb_midl_append_range": {
+    "file": "midl.c",
+    "signature": "MDB_IDL idn = *idp-1; /* grow it */ idn = realloc(idn, (*idn +",
+    "start_line": 185,
+    "end_line": 199,
+    "summary": "向 ID 列表追加一个连续 ID 范围",
+    "subsystem": "storage",
+    "scenario": "被溢出页面释放和数据库删除函数调用，批量添加 ID",
+    "data_structures": [
+      "MDB_IDL",
+      "MDB_ID"
+    ],
+    "direct_calls": [
+      "mdb_midl_grow"
+    ],
+    "known_callers": [
+      "mdb_ovpage_free",
+      "mdb_drop0"
+    ]
+  },
+  "mdb_midl_xmerge": {
+    "file": "midl.c",
+    "signature": "num/4 + (256 + 2)) & -256; if (!(ids = realloc(i",
+    "start_line": 201,
+    "end_line": 213,
+    "summary": "合并两个有序 ID 列表，结果保持有序",
+    "subsystem": "storage",
+    "scenario": "被页面分配和空闲列表保存函数调用，合并 ID 集合",
+    "data_structures": [
+      "MDB_IDL"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_alloc",
+      "mdb_freelist_save"
+    ]
+  },
+  "mdb_midl_sort": {
+    "file": "midl.c",
+    "signature": "_append_list( MDB_IDL *idp, MDB_ID",
+    "start_line": 220,
+    "end_line": 279,
+    "summary": "对 ID 列表进行快速排序，确保升序",
+    "subsystem": "storage",
+    "scenario": "被页面溢出和空闲列表保存函数调用，排序 ID 列表",
+    "data_structures": [
+      "MDB_IDL",
+      "MIDL_SWAP"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_spill",
+      "mdb_freelist_save",
+      "_mdb_txn_commit"
+    ]
+  },
+  "mdb_mid2l_search": {
+    "file": "midl.c",
+    "signature": "/* Max possible depth of int-indexed tree * 2 items/l",
+    "start_line": 281,
+    "end_line": 314,
+    "summary": "在二级 ID 列表中进行二分查找",
+    "subsystem": "storage",
+    "scenario": "被页面管理和事务提交函数调用，查找页面或游标 ID",
+    "data_structures": [
+      "MDB_ID2L",
+      "MDB_ID"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "mdb_page_loose",
+      "mdb_page_touch",
+      "mdb_freelist_save",
+      "_mdb_txn_commit",
+      "mdb_page_get",
+      "mdb_mid2l_insert"
+    ]
+  },
+  "mdb_mid2l_insert": {
+    "file": "midl.c",
+    "signature": "istack[jstack--]; } else { k = (l + ir) >> 1;",
+    "start_line": 316,
+    "end_line": 345,
+    "summary": "向二级 ID 列表插入一个 ID，保持有序",
+    "subsystem": "storage",
+    "scenario": "被页面接触和游标放置函数调用，更新二级索引",
+    "data_structures": [
+      "MDB_ID2L",
+      "MDB_ID"
+    ],
+    "direct_calls": [
+      "mdb_mid2l_search"
+    ],
+    "known_callers": [
+      "mdb_page_touch",
+      "_mdb_cursor_put"
+    ]
+  },
+  "mdb_mid2l_append": {
+    "file": "midl.c",
+    "signature": "s[i] > a); do j--; while(ids[j] < a); if (",
+    "start_line": 347,
+    "end_line": 356,
+    "summary": "向二级 ID 列表追加一个 ID",
+    "subsystem": "storage",
+    "scenario": "被页面松散函数调用，快速添加二级 ID",
+    "data_structures": [
+      "MDB_ID2L",
+      "MDB_ID"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  },
+  "inhex": {
+    "file": "mplay.c",
+    "signature": "air { void *tenv; MDB_env *re",
+    "start_line": 100,
+    "end_line": 108,
+    "summary": "将十六进制字符串转换为二进制数据",
+    "subsystem": "tool",
+    "scenario": "被 child 函数调用，处理回放输入中的十六进制编码",
+    "data_structures": [
+      "isxdigit"
+    ],
+    "direct_calls": [
+      "unhex"
+    ],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "addenv": {
+    "file": "mplay.c",
+    "signature": "ttxn; crspair *lastcrs; typedef struct pidpai",
+    "start_line": 110,
+    "end_line": 118,
+    "summary": "添加环境对到全局数组，映射文本环境到真实环境",
+    "subsystem": "tool",
+    "scenario": "被 child 函数调用，在回放过程中管理环境映射",
+    "data_structures": [
+      "envpair",
+      "MDB_env"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "findenv": {
+    "file": "mplay.c",
+    "signature": "c int unhex(unsigned char *c2) { in",
+    "start_line": 120,
+    "end_line": 131,
+    "summary": "根据文本环境指针查找对应的真实环境",
+    "subsystem": "tool",
+    "scenario": "被 addtxn 和 child 函数调用，在回放中定位环境",
+    "data_structures": [
+      "envpair",
+      "tenv"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "addtxn",
+      "child"
+    ]
+  },
+  "delenv": {
+    "file": "mplay.c",
+    "signature": "hile (isxdigit(*in)) { *c2++ =",
+    "start_line": 133,
+    "end_line": 140,
+    "summary": "从全局数组中删除环境对",
+    "subsystem": "tool",
+    "scenario": "被 child 函数调用，在回放结束时清理环境映射",
+    "data_structures": [
+      "envpair"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "addtxn": {
+    "file": "mplay.c",
+    "signature": "env *renv) { assert(nenvs < MAXENVS); envs[nenvs].tenv =",
+    "start_line": 142,
+    "end_line": 155,
+    "summary": "在事务管理表中添加新事务记录",
+    "subsystem": "transaction",
+    "scenario": "被 child 函数在解析 mdb_txn_begin 命令时调用，用于记录新创建的事务",
+    "data_structures": [
+      "envpair",
+      "txnpair",
+      "MDB_txn"
+    ],
+    "direct_calls": [
+      "findenv"
+    ],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "findtxn": {
+    "file": "mplay.c",
+    "signature": "nenvs; i++) if (envs[i].tenv == t",
+    "start_line": 157,
+    "end_line": 181,
+    "summary": "根据事务句柄查找对应的事务记录",
+    "subsystem": "transaction",
+    "scenario": "被 deltxn、addcrs、child 等函数调用，用于定位特定事务以进行后续操作",
+    "data_structures": [
+      "envpair",
+      "txnpair"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "deltxn": {
+    "file": "mplay.c",
+    "signature": "} static txnpair *findtxn(void",
+    "start_line": 183,
+    "end_line": 190,
+    "summary": "从事务管理表中删除指定的事务记录",
+    "subsystem": "transaction",
+    "scenario": "被 child 函数在解析 mdb_txn_commit/abort 命令时调用，用于清理已完成的事务",
+    "data_structures": [
+      "envpair",
+      "txnpair"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "addcrs": {
+    "file": "mplay.c",
+    "signature": "->txns[i].ttxn == ttxn) { lasttxn = lastenv->txns+i; r",
+    "start_line": 192,
+    "end_line": 201,
+    "summary": "在事务记录中添加新的游标记录",
+    "subsystem": "transaction",
+    "scenario": "被 child 函数在解析 mdb_cursor_open 命令时调用，用于记录新创建的游标",
+    "data_structures": [
+      "txnpair",
+      "crspair",
+      "MDB_cursor"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "findcrs": {
+    "file": "mplay.c",
+    "signature": "lastenv = envs+i; lasttxn =",
+    "start_line": 203,
+    "end_line": 247,
+    "summary": "根据游标句柄查找对应的游标记录",
+    "subsystem": "transaction",
+    "scenario": "被 delcrs 和 child 函数调用，用于定位特定游标以进行关闭或操作",
+    "data_structures": [
+      "envpair",
+      "txnpair",
+      "crspair"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "delcrs",
+      "child"
+    ]
+  },
+  "delcrs": {
+    "file": "mplay.c",
+    "signature": "if (tp == lasttxn) continu",
+    "start_line": 249,
+    "end_line": 258,
+    "summary": "关闭并删除事务记录中的游标记录",
+    "subsystem": "transaction",
+    "scenario": "被 child 函数在解析 mdb_cursor_close 命令时调用，用于清理游标资源",
+    "data_structures": [
+      "txnpair",
+      "crspair",
+      "MDB_cursor"
+    ],
+    "direct_calls": [
+      "findcrs",
+      "mdb_cursor_close"
+    ],
+    "known_callers": [
+      "child"
+    ]
+  },
+  "child": {
+    "file": "mplay.c",
+    "signature": "0, tp=ep->txn",
+    "start_line": 260,
+    "end_line": 474,
+    "summary": "子进程主循环，解析并执行来自父进程的 LMDB 命令",
+    "subsystem": "transaction",
+    "scenario": "被 addpid 函数在创建子进程后调用，作为子进程的入口点处理所有数据库操作",
+    "data_structures": [
+      "envpair",
+      "txnpair",
+      "crspair",
+      "MDB_val",
+      "MDB_txn",
+      "MDB_cursor"
+    ],
+    "direct_calls": [
+      "mdb_env_create",
+      "addenv",
+      "findenv",
+      "mdb_env_set_maxdbs",
+      "mdb_env_set_mapsize",
+      "mdb_env_open",
+      "mdb_env_get_maxkeysize",
+      "mdb_env_close",
+      "delenv",
+      "mdb_txn_begin",
+      "addtxn",
+      "findtxn",
+      "mdb_txn_commit",
+      "deltxn",
+      "mdb_txn_abort",
+      "mdb_dbi_open",
+      "mdb_dbi_close",
+      "mdb_cursor_open",
+      "addcrs",
+      "delcrs",
+      "findcrs",
+      "inhex",
+      "mdb_txn_id",
+      "mdb_cursor_put",
+      "mdb_cursor_del",
+      "mdb_put",
+      "mdb_del"
+    ],
+    "known_callers": [
+      "addpid"
+    ]
+  },
+  "addpid": {
+    "file": "mplay.c",
+    "signature": "ey.mv_size); tp = findtxn(ttxn",
+    "start_line": 476,
+    "end_line": 500,
+    "summary": "创建新的子进程并记录其进程信息",
+    "subsystem": "transaction",
+    "scenario": "被 main 函数调用，用于在测试中启动并管理独立的数据库子进程",
+    "data_structures": [
+      "pidpair"
+    ],
+    "direct_calls": [
+      "child"
+    ],
+    "known_callers": []
+  },
+  "findpid": {
+    "file": "mplay.c",
+    "signature": "dbuf, \"%09ld\", (long)mdb_txn_id(tp",
+    "start_line": 502,
+    "end_line": 514,
+    "summary": "根据进程标识符查找对应的进程记录",
+    "subsystem": "transaction",
+    "scenario": "被 delpid 函数调用，用于定位特定子进程以进行清理",
+    "data_structures": [
+      "pidpair"
+    ],
+    "direct_calls": [],
+    "known_callers": [
+      "delpid"
+    ]
+  },
+  "delpid": {
+    "file": "mplay.c",
+    "signature": "s < MAXPIDS); pids[npids].tp",
+    "start_line": 518,
+    "end_line": 528,
+    "summary": "终止并删除指定的子进程记录",
+    "subsystem": "transaction",
+    "scenario": "被 main 函数调用，用于在测试结束时清理子进程资源",
+    "data_structures": [
+      "pidpair"
+    ],
+    "direct_calls": [
+      "findpid"
+    ],
+    "known_callers": []
+  },
+  "reaper": {
+    "file": "mplay.c",
+    "signature": "NOTREACHED */ } else { pi",
+    "start_line": 530,
+    "end_line": 547,
+    "summary": "SIGCHLD 信号处理函数，回收已终止的子进程",
+    "subsystem": "transaction",
+    "scenario": "被操作系统在子进程退出时异步调用，用于清理进程表中的僵尸进程",
+    "data_structures": [
+      "pidpair"
+    ],
+    "direct_calls": [],
+    "known_callers": []
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "affected_files": [
+    "mdb.c",
+    "lmdb.h"
+  ],
+  "steps": [
+    {
+      "description": "Add TTL-related constants and structures to lmdb.h and mdb.c. Define MDB_TTL_EXPIRED error code, MDB_TTL flag for put operations, and internal structures for storing expiration timestamps.",
+      "functions_to_modify": [],
+      "functions_to_add": [],
+      "header_changes": {
+        "lmdb.h": [
+          "Add #define MDB_TTL 0x1000 to flags for mdb_put_ttl",
+          "Add #define MDB_TTL_EXPIRED (-30800) as new error code",
+          "Add function prototype: int mdb_put_ttl(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data, time_t expiry);",
+          "Add function prototype: int mdb_purge_expired(MDB_txn *txn, MDB_dbi dbi);"
+        ]
+      },
+      "relevant_structs": [
+        "MDB_val",
+        "MDB_txn",
+        "MDB_dbi"
+      ]
+    },
+    {
+      "description": "Modify mdb_put to support TTL by adding a wrapper function mdb_put_ttl that encodes expiry timestamp into value data (prepend 8-byte timestamp) and calls mdb_put with MDB_TTL flag. Update internal value handling to store expiry separately in a TTL sub-database.",
+      "functions_to_modify": [
+        "mdb_put"
+      ],
+      "functions_to_add": [
+        {
+          "name": "mdb_put_ttl",
+          "in_file": ""
+        }
+      ],
+      "header_changes": {},
+      "relevant_structs": [
+        "MDB_val",
+        "MDB_txn",
+        "MDB_dbi"
+      ]
+    },
+    {
+      "description": "Modify mdb_get to check for expiration before returning data. Decode expiry timestamp from stored value (first 8 bytes) or query TTL sub-database, compare with current time, and return MDB_TTL_EXPIRED if expired. Ensure backward compatibility for non-TTL data.",
+      "functions_to_modify": [
+        "mdb_get"
+      ],
+      "functions_to_add": [],
+      "header_changes": {},
+      "relevant_structs": [
+        "MDB_val",
+        "MDB_txn",
+        "MDB_dbi"
+      ]
+    },
+    {
+      "description": "Implement mdb_purge_expired function that scans the TTL sub-database (or main database with TTL data) and deletes all expired key-value pairs using cursor operations. Use mdb_cursor_get to iterate and mdb_cursor_del to remove expired entries.",
+      "functions_to_modify": [],
+      "functions_to_add": [
+        {
+          "name": "mdb_purge_expired",
+          "in_file": ""
+        }
+      ],
+      "header_changes": {},
+      "relevant_structs": [
+        "MDB_cursor",
+        "MDB_txn",
+        "MDB_dbi"
+      ]
+    },
+    {
+      "description": "Update internal cursor operations (mdb_cursor_put, mdb_cursor_del) to handle TTL data correctly. Ensure that when inserting with TTL, the expiry is stored in the TTL sub-database, and when deleting, both main and TTL entries are removed.",
+      "functions_to_modify": [
+        "mdb_cursor_put",
+        "mdb_cursor_del"
+      ],
+      "functions_to_add": [],
+      "header_changes": {},
+      "relevant_structs": [
+        "MDB_cursor",
+        "MDB_node",
+        "MDB_page"
+      ]
+    },
+    {
+      "description": "Add helper functions for TTL management: encode expiry into value, decode expiry from value, and check if a key is expired. Integrate these helpers into mdb_get and mdb_put_ttl.",
+      "functions_to_modify": [],
+      "functions_to_add": [
+        {
+          "name": "mdb_ttl_encode",
+          "in_file": ""
+        },
+        {
+          "name": "mdb_ttl_decode",
+          "in_file": ""
+        },
+        {
+          "name": "mdb_ttl_check",
+          "in_file": ""
+        }
+      ],
+      "header_changes": {},
+      "relevant_structs": [
+        "MDB_val"
+      ]
+    },
+    {
+      "description": "Modify transaction commit and abort logic to ensure TTL sub-database is properly handled. Update mdb_txn_commit and mdb_txn_abort to clean up TTL-related resources if needed.",
+      "functions_to_modify": [
+        "mdb_txn_commit",
+        "mdb_txn_abort"
+      ],
+      "functions_to_add": [],
+      "header_changes": {},
+      "relevant_structs": [
+        "MDB_txn",
+        "MDB_env"
+      ]
+    },
+    {
+      "description": "Update database open/close functions (mdb_dbi_open, mdb_dbi_close) to initialize and manage the TTL sub-database. Ensure the TTL sub-database is created automatically when TTL is used.",
+      "functions_to_modify": [
+        "mdb_dbi_open",
+        "mdb_dbi_close"
+      ],
+      "functions_to_add": [],
+      "header_changes": {},
+      "relevant_structs": [
+        "MDB_dbi",
+        "MDB_env"
+      ]
+    },
+    {
+      "description": "Add error handling and validation for TTL operations. Ensure that invalid expiry times (e.g., past times) are rejected, and that MDB_TTL_EXPIRED is returned appropriately in mdb_get.",
+      "functions_to_modify": [
+        "mdb_put_ttl",
+        "mdb_get"
+      ],
+      "functions_to_add": [],
+      "header_changes": {},
+      "relevant_structs": []
+    },
+    {
+      "description": "Test the implementation by adding simple test cases in existing test files or creating a new test program. Verify that mdb_put_ttl stores expiry, mdb_get returns MDB_TTL_EXPIRED for expired keys, and mdb_purge_expired removes expired data.",
+      "functions_to_modify": [],
+      "functions_to_add": [],
+      "header_changes": {},
+      "relevant_structs": []
+    }
+  ],
+  "functions_to_modify": [
+    "mdb_put",
+    "mdb_get",
+    "mdb_cursor_put",
+    "mdb_cursor_del",
+    "mdb_txn_commit",
+    "mdb_txn_abort",
+    "mdb_dbi_open",
+    "mdb_dbi_close",
+    "mdb_put_ttl"
+  ],
+  "functions_to_add": [
+    {
+      "name": "mdb_put_ttl",
+      "in_file": ""
+    },
+    {
+      "name": "mdb_purge_expired",
+      "in_file": ""
+    },
+    {
+      "name": "mdb_ttl_encode",
+      "in_file": ""
+    },
+    {
+      "name": "mdb_ttl_decode",
+      "in_file": ""
+    },
+    {
+      "name": "mdb_ttl_check",
+      "in_file": ""
+    }
+  ]
+}

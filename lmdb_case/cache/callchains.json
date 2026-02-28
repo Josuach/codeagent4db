@@ -1,0 +1,1339 @@
+{
+  "write_path": {
+    "mdb_put": {
+      "mdb_dval": {
+        "mdb_dkey": {}
+      },
+      "mdb_cursor_init": {
+        "mdb_xcursor_init0": {},
+        "mdb_page_search": {
+          "mdb_cursor_init": {
+            "__ref__": "mdb_cursor_init"
+          },
+          "mdb_node_search": {
+            "mdb_dbg_pgno": {}
+          },
+          "mdb_node_read": {
+            "mdb_page_get": {
+              "mdb_midl_search": {},
+              "mdb_mid2l_search": {}
+            }
+          },
+          "mdb_page_get": {
+            "__ref__": "mdb_page_get"
+          },
+          "mdb_page_touch": {
+            "mdb_page_unspill": {
+              "mdb_midl_search": {
+                "__ref__": "mdb_midl_search"
+              },
+              "mdb_page_malloc": {},
+              "mdb_page_copy": {},
+              "mdb_page_dirty": {}
+            },
+            "mdb_midl_need": {},
+            "mdb_page_alloc": {
+              "mdb_cursor_init": {
+                "__ref__": "mdb_cursor_init"
+              },
+              "mdb_find_oldest": {},
+              "mdb_cursor_get": {
+                "mdb_node_read": {
+                  "__ref__": "mdb_node_read"
+                },
+                "mdb_cursor_set": {
+                  "mdb_page_search": {
+                    "__ref__": "mdb_page_search"
+                  },
+                  "mdb_node_search": {
+                    "__ref__": "mdb_node_search"
+                  },
+                  "mdb_cursor_sibling": {
+                    "mdb_cursor_pop": {
+                      "__truncated__": true
+                    },
+                    "mdb_page_get": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_push": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_xcursor_init1": {},
+                  "mdb_cursor_first": {
+                    "mdb_page_search": {
+                      "__truncated__": true
+                    },
+                    "mdb_xcursor_init1": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_read": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_node_read": {
+                    "__ref__": "mdb_node_read"
+                  }
+                },
+                "mdb_cursor_next": {
+                  "mdb_cursor_first": {
+                    "__ref__": "mdb_cursor_first"
+                  },
+                  "mdb_dbg_pgno": {
+                    "__ref__": "mdb_dbg_pgno"
+                  },
+                  "mdb_cursor_sibling": {
+                    "__ref__": "mdb_cursor_sibling"
+                  },
+                  "mdb_xcursor_init1": {
+                    "__ref__": "mdb_xcursor_init1"
+                  },
+                  "mdb_node_read": {
+                    "__ref__": "mdb_node_read"
+                  }
+                },
+                "mdb_cursor_last": {
+                  "mdb_page_search": {
+                    "__ref__": "mdb_page_search"
+                  },
+                  "mdb_xcursor_init1": {
+                    "__ref__": "mdb_xcursor_init1"
+                  },
+                  "mdb_node_read": {
+                    "__ref__": "mdb_node_read"
+                  }
+                },
+                "mdb_cursor_sibling": {
+                  "__ref__": "mdb_cursor_sibling"
+                },
+                "mdb_cursor_prev": {
+                  "mdb_cursor_last": {
+                    "__ref__": "mdb_cursor_last"
+                  },
+                  "mdb_dbg_pgno": {
+                    "__ref__": "mdb_dbg_pgno"
+                  },
+                  "mdb_cursor_sibling": {
+                    "__ref__": "mdb_cursor_sibling"
+                  },
+                  "mdb_xcursor_init1": {
+                    "__ref__": "mdb_xcursor_init1"
+                  },
+                  "mdb_node_read": {
+                    "__ref__": "mdb_node_read"
+                  }
+                },
+                "mdb_cursor_first": {
+                  "__ref__": "mdb_cursor_first"
+                }
+              },
+              "mdb_node_read": {
+                "__ref__": "mdb_node_read"
+              },
+              "mdb_midl_alloc": {},
+              "mdb_midl_need": {
+                "__ref__": "mdb_midl_need"
+              },
+              "mdb_midl_xmerge": {},
+              "mdb_page_malloc": {
+                "__ref__": "mdb_page_malloc"
+              },
+              "mdb_page_dirty": {
+                "__ref__": "mdb_page_dirty"
+              }
+            },
+            "mdb_mid2l_search": {
+              "__ref__": "mdb_mid2l_search"
+            },
+            "mdb_page_malloc": {
+              "__ref__": "mdb_page_malloc"
+            },
+            "mdb_mid2l_insert": {
+              "mdb_mid2l_search": {
+                "__ref__": "mdb_mid2l_search"
+              }
+            },
+            "mdb_page_copy": {
+              "__ref__": "mdb_page_copy"
+            }
+          },
+          "mdb_page_search_root": {
+            "mdb_node_search": {
+              "__ref__": "mdb_node_search"
+            },
+            "mdb_page_get": {
+              "__ref__": "mdb_page_get"
+            },
+            "mdb_cursor_push": {},
+            "mdb_page_touch": {
+              "__ref__": "mdb_page_touch"
+            }
+          }
+        }
+      },
+      "_mdb_cursor_put": {
+        "mdb_cursor_last": {
+          "__ref__": "mdb_cursor_last"
+        },
+        "mdb_cursor_set": {
+          "__ref__": "mdb_cursor_set"
+        },
+        "mdb_page_spill": {
+          "mdb_midl_alloc": {
+            "__ref__": "mdb_midl_alloc"
+          },
+          "mdb_pages_xkeep": {
+            "mdb_page_get": {
+              "__ref__": "mdb_page_get"
+            }
+          },
+          "mdb_midl_search": {
+            "__ref__": "mdb_midl_search"
+          },
+          "mdb_midl_append": {
+            "mdb_midl_grow": {}
+          },
+          "mdb_midl_sort": {},
+          "mdb_page_flush": {
+            "mdb_dpage_free": {
+              "mdb_page_free": {}
+            }
+          }
+        },
+        "mdb_page_new": {
+          "mdb_page_alloc": {
+            "__ref__": "mdb_page_alloc"
+          }
+        },
+        "mdb_cursor_push": {
+          "__ref__": "mdb_cursor_push"
+        },
+        "mdb_cursor_touch": {
+          "mdb_cursor_init": {
+            "__ref__": "mdb_cursor_init"
+          },
+          "mdb_page_search": {
+            "__ref__": "mdb_page_search"
+          },
+          "mdb_page_touch": {
+            "__ref__": "mdb_page_touch"
+          }
+        },
+        "mdb_update_key": {
+          "mdb_dkey": {
+            "__ref__": "mdb_dkey"
+          },
+          "mdb_node_del": {
+            "mdb_dbg_pgno": {
+              "__ref__": "mdb_dbg_pgno"
+            }
+          },
+          "mdb_page_split": {
+            "mdb_page_new": {
+              "__ref__": "mdb_page_new"
+            },
+            "mdb_node_add": {
+              "mdb_dbg_pgno": {
+                "__ref__": "mdb_dbg_pgno"
+              },
+              "mdb_page_new": {
+                "__ref__": "mdb_page_new"
+              }
+            },
+            "mdb_cursor_copy": {},
+            "mdb_leaf_size": {},
+            "mdb_branch_size": {},
+            "mdb_page_malloc": {
+              "__ref__": "mdb_page_malloc"
+            },
+            "mdb_cursor_sibling": {
+              "__ref__": "mdb_cursor_sibling"
+            },
+            "mdb_page_free": {
+              "__ref__": "mdb_page_free"
+            }
+          }
+        },
+        "mdb_page_alloc": {
+          "__ref__": "mdb_page_alloc"
+        },
+        "mdb_node_del": {
+          "__ref__": "mdb_node_del"
+        },
+        "mdb_page_get": {
+          "__ref__": "mdb_page_get"
+        },
+        "mdb_page_unspill": {
+          "__ref__": "mdb_page_unspill"
+        },
+        "mdb_page_malloc": {
+          "__ref__": "mdb_page_malloc"
+        },
+        "mdb_mid2l_insert": {
+          "__ref__": "mdb_mid2l_insert"
+        },
+        "mdb_ovpage_free": {
+          "mdb_midl_search": {
+            "__ref__": "mdb_midl_search"
+          },
+          "mdb_midl_need": {
+            "__ref__": "mdb_midl_need"
+          },
+          "mdb_dpage_free": {
+            "__ref__": "mdb_dpage_free"
+          },
+          "mdb_midl_append_range": {
+            "mdb_midl_grow": {
+              "__ref__": "mdb_midl_grow"
+            }
+          }
+        },
+        "mdb_leaf_size": {
+          "__ref__": "mdb_leaf_size"
+        },
+        "mdb_page_split": {
+          "__ref__": "mdb_page_split"
+        },
+        "mdb_node_add": {
+          "__ref__": "mdb_node_add"
+        },
+        "mdb_xcursor_init1": {
+          "__ref__": "mdb_xcursor_init1"
+        },
+        "mdb_xcursor_init2": {}
+      }
+    }
+  },
+  "read_path": {
+    "mdb_get": {
+      "mdb_cursor_init": {
+        "mdb_xcursor_init0": {},
+        "mdb_page_search": {
+          "mdb_cursor_init": {
+            "__ref__": "mdb_cursor_init"
+          },
+          "mdb_node_search": {
+            "mdb_dbg_pgno": {}
+          },
+          "mdb_node_read": {
+            "mdb_page_get": {
+              "mdb_midl_search": {},
+              "mdb_mid2l_search": {}
+            }
+          },
+          "mdb_page_get": {
+            "__ref__": "mdb_page_get"
+          },
+          "mdb_page_touch": {
+            "mdb_page_unspill": {
+              "mdb_midl_search": {
+                "__ref__": "mdb_midl_search"
+              },
+              "mdb_page_malloc": {},
+              "mdb_page_copy": {},
+              "mdb_page_dirty": {}
+            },
+            "mdb_midl_need": {},
+            "mdb_page_alloc": {
+              "mdb_cursor_init": {
+                "__ref__": "mdb_cursor_init"
+              },
+              "mdb_find_oldest": {},
+              "mdb_cursor_get": {
+                "mdb_node_read": {
+                  "__ref__": "mdb_node_read"
+                },
+                "mdb_cursor_set": {
+                  "mdb_page_search": {
+                    "__ref__": "mdb_page_search"
+                  },
+                  "mdb_node_search": {
+                    "__ref__": "mdb_node_search"
+                  },
+                  "mdb_cursor_sibling": {
+                    "mdb_cursor_pop": {
+                      "__truncated__": true
+                    },
+                    "mdb_page_get": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_push": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_xcursor_init1": {},
+                  "mdb_cursor_first": {
+                    "mdb_page_search": {
+                      "__truncated__": true
+                    },
+                    "mdb_xcursor_init1": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_read": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_node_read": {
+                    "__ref__": "mdb_node_read"
+                  }
+                },
+                "mdb_cursor_next": {
+                  "mdb_cursor_first": {
+                    "__ref__": "mdb_cursor_first"
+                  },
+                  "mdb_dbg_pgno": {
+                    "__ref__": "mdb_dbg_pgno"
+                  },
+                  "mdb_cursor_sibling": {
+                    "__ref__": "mdb_cursor_sibling"
+                  },
+                  "mdb_xcursor_init1": {
+                    "__ref__": "mdb_xcursor_init1"
+                  },
+                  "mdb_node_read": {
+                    "__ref__": "mdb_node_read"
+                  }
+                },
+                "mdb_cursor_last": {
+                  "mdb_page_search": {
+                    "__ref__": "mdb_page_search"
+                  },
+                  "mdb_xcursor_init1": {
+                    "__ref__": "mdb_xcursor_init1"
+                  },
+                  "mdb_node_read": {
+                    "__ref__": "mdb_node_read"
+                  }
+                },
+                "mdb_cursor_sibling": {
+                  "__ref__": "mdb_cursor_sibling"
+                },
+                "mdb_cursor_prev": {
+                  "mdb_cursor_last": {
+                    "__ref__": "mdb_cursor_last"
+                  },
+                  "mdb_dbg_pgno": {
+                    "__ref__": "mdb_dbg_pgno"
+                  },
+                  "mdb_cursor_sibling": {
+                    "__ref__": "mdb_cursor_sibling"
+                  },
+                  "mdb_xcursor_init1": {
+                    "__ref__": "mdb_xcursor_init1"
+                  },
+                  "mdb_node_read": {
+                    "__ref__": "mdb_node_read"
+                  }
+                },
+                "mdb_cursor_first": {
+                  "__ref__": "mdb_cursor_first"
+                }
+              },
+              "mdb_node_read": {
+                "__ref__": "mdb_node_read"
+              },
+              "mdb_midl_alloc": {},
+              "mdb_midl_need": {
+                "__ref__": "mdb_midl_need"
+              },
+              "mdb_midl_xmerge": {},
+              "mdb_page_malloc": {
+                "__ref__": "mdb_page_malloc"
+              },
+              "mdb_page_dirty": {
+                "__ref__": "mdb_page_dirty"
+              }
+            },
+            "mdb_mid2l_search": {
+              "__ref__": "mdb_mid2l_search"
+            },
+            "mdb_page_malloc": {
+              "__ref__": "mdb_page_malloc"
+            },
+            "mdb_mid2l_insert": {
+              "mdb_mid2l_search": {
+                "__ref__": "mdb_mid2l_search"
+              }
+            },
+            "mdb_page_copy": {
+              "__ref__": "mdb_page_copy"
+            }
+          },
+          "mdb_page_search_root": {
+            "mdb_node_search": {
+              "__ref__": "mdb_node_search"
+            },
+            "mdb_page_get": {
+              "__ref__": "mdb_page_get"
+            },
+            "mdb_cursor_push": {},
+            "mdb_page_touch": {
+              "__ref__": "mdb_page_touch"
+            }
+          }
+        }
+      },
+      "mdb_cursor_set": {
+        "__ref__": "mdb_cursor_set"
+      }
+    }
+  },
+  "delete_path": {
+    "mdb_del": {
+      "mdb_dval": {
+        "mdb_dkey": {}
+      },
+      "mdb_del0": {
+        "mdb_cursor_init": {
+          "mdb_xcursor_init0": {},
+          "mdb_page_search": {
+            "mdb_cursor_init": {
+              "__ref__": "mdb_cursor_init"
+            },
+            "mdb_node_search": {
+              "mdb_dbg_pgno": {}
+            },
+            "mdb_node_read": {
+              "mdb_page_get": {
+                "mdb_midl_search": {},
+                "mdb_mid2l_search": {}
+              }
+            },
+            "mdb_page_get": {
+              "__ref__": "mdb_page_get"
+            },
+            "mdb_page_touch": {
+              "mdb_page_unspill": {
+                "mdb_midl_search": {
+                  "__ref__": "mdb_midl_search"
+                },
+                "mdb_page_malloc": {},
+                "mdb_page_copy": {},
+                "mdb_page_dirty": {}
+              },
+              "mdb_midl_need": {},
+              "mdb_page_alloc": {
+                "mdb_cursor_init": {
+                  "__ref__": "mdb_cursor_init"
+                },
+                "mdb_find_oldest": {},
+                "mdb_cursor_get": {
+                  "mdb_node_read": {
+                    "__ref__": "mdb_node_read"
+                  },
+                  "mdb_cursor_set": {
+                    "mdb_page_search": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_search": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_sibling": {
+                      "__truncated__": true
+                    },
+                    "mdb_xcursor_init1": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_first": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_read": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_cursor_next": {
+                    "mdb_cursor_first": {
+                      "__truncated__": true
+                    },
+                    "mdb_dbg_pgno": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_sibling": {
+                      "__truncated__": true
+                    },
+                    "mdb_xcursor_init1": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_read": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_cursor_last": {
+                    "mdb_page_search": {
+                      "__truncated__": true
+                    },
+                    "mdb_xcursor_init1": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_read": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_cursor_sibling": {
+                    "mdb_cursor_pop": {
+                      "__truncated__": true
+                    },
+                    "mdb_page_get": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_push": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_cursor_prev": {
+                    "mdb_cursor_last": {
+                      "__truncated__": true
+                    },
+                    "mdb_dbg_pgno": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_sibling": {
+                      "__truncated__": true
+                    },
+                    "mdb_xcursor_init1": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_read": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_cursor_first": {
+                    "mdb_page_search": {
+                      "__truncated__": true
+                    },
+                    "mdb_xcursor_init1": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_read": {
+                      "__truncated__": true
+                    }
+                  }
+                },
+                "mdb_node_read": {
+                  "__ref__": "mdb_node_read"
+                },
+                "mdb_midl_alloc": {},
+                "mdb_midl_need": {
+                  "__ref__": "mdb_midl_need"
+                },
+                "mdb_midl_xmerge": {},
+                "mdb_page_malloc": {
+                  "__ref__": "mdb_page_malloc"
+                },
+                "mdb_page_dirty": {
+                  "__ref__": "mdb_page_dirty"
+                }
+              },
+              "mdb_mid2l_search": {
+                "__ref__": "mdb_mid2l_search"
+              },
+              "mdb_page_malloc": {
+                "__ref__": "mdb_page_malloc"
+              },
+              "mdb_mid2l_insert": {
+                "mdb_mid2l_search": {
+                  "__ref__": "mdb_mid2l_search"
+                }
+              },
+              "mdb_page_copy": {
+                "__ref__": "mdb_page_copy"
+              }
+            },
+            "mdb_page_search_root": {
+              "mdb_node_search": {
+                "__ref__": "mdb_node_search"
+              },
+              "mdb_page_get": {
+                "__ref__": "mdb_page_get"
+              },
+              "mdb_cursor_push": {},
+              "mdb_page_touch": {
+                "__ref__": "mdb_page_touch"
+              }
+            }
+          }
+        },
+        "mdb_cursor_set": {
+          "__ref__": "mdb_cursor_set"
+        },
+        "_mdb_cursor_del": {
+          "mdb_page_spill": {
+            "mdb_midl_alloc": {
+              "__ref__": "mdb_midl_alloc"
+            },
+            "mdb_pages_xkeep": {
+              "mdb_page_get": {
+                "__ref__": "mdb_page_get"
+              }
+            },
+            "mdb_midl_search": {
+              "__ref__": "mdb_midl_search"
+            },
+            "mdb_midl_append": {
+              "mdb_midl_grow": {}
+            },
+            "mdb_midl_sort": {},
+            "mdb_page_flush": {
+              "mdb_dpage_free": {
+                "mdb_page_free": {}
+              }
+            }
+          },
+          "mdb_cursor_touch": {
+            "mdb_cursor_init": {
+              "__ref__": "mdb_cursor_init"
+            },
+            "mdb_page_search": {
+              "__ref__": "mdb_page_search"
+            },
+            "mdb_page_touch": {
+              "__ref__": "mdb_page_touch"
+            }
+          },
+          "mdb_node_shrink": {},
+          "mdb_drop0": {
+            "mdb_page_search": {
+              "__ref__": "mdb_page_search"
+            },
+            "mdb_cursor_pop": {},
+            "mdb_cursor_copy": {},
+            "mdb_page_get": {
+              "__ref__": "mdb_page_get"
+            },
+            "mdb_midl_append_range": {
+              "mdb_midl_grow": {
+                "__ref__": "mdb_midl_grow"
+              }
+            },
+            "mdb_xcursor_init1": {},
+            "mdb_midl_need": {
+              "__ref__": "mdb_midl_need"
+            },
+            "mdb_cursor_sibling": {
+              "__ref__": "mdb_cursor_sibling"
+            },
+            "mdb_midl_append": {
+              "__ref__": "mdb_midl_append"
+            }
+          },
+          "mdb_page_get": {
+            "__ref__": "mdb_page_get"
+          },
+          "mdb_ovpage_free": {
+            "mdb_midl_search": {
+              "__ref__": "mdb_midl_search"
+            },
+            "mdb_midl_need": {
+              "__ref__": "mdb_midl_need"
+            },
+            "mdb_dpage_free": {
+              "__ref__": "mdb_dpage_free"
+            },
+            "mdb_midl_append_range": {
+              "__ref__": "mdb_midl_append_range"
+            }
+          },
+          "mdb_cursor_del0": {
+            "mdb_node_del": {
+              "mdb_dbg_pgno": {
+                "__ref__": "mdb_dbg_pgno"
+              }
+            },
+            "mdb_rebalance": {
+              "mdb_dbg_pgno": {
+                "__ref__": "mdb_dbg_pgno"
+              },
+              "mdb_midl_append": {
+                "__ref__": "mdb_midl_append"
+              },
+              "mdb_page_get": {
+                "__ref__": "mdb_page_get"
+              },
+              "mdb_cursor_copy": {
+                "__ref__": "mdb_cursor_copy"
+              },
+              "mdb_node_move": {
+                "mdb_page_touch": {
+                  "__ref__": "mdb_page_touch"
+                },
+                "mdb_page_search_lowest": {
+                  "mdb_page_get": {
+                    "__ref__": "mdb_page_get"
+                  },
+                  "mdb_cursor_push": {
+                    "__ref__": "mdb_cursor_push"
+                  },
+                  "mdb_page_search_root": {
+                    "__ref__": "mdb_page_search_root"
+                  }
+                },
+                "mdb_cursor_copy": {
+                  "__ref__": "mdb_cursor_copy"
+                },
+                "mdb_update_key": {
+                  "mdb_dkey": {
+                    "__ref__": "mdb_dkey"
+                  },
+                  "mdb_node_del": {
+                    "__ref__": "mdb_node_del"
+                  },
+                  "mdb_page_split": {
+                    "mdb_page_new": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_add": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_copy": {
+                      "__truncated__": true
+                    },
+                    "mdb_leaf_size": {
+                      "__truncated__": true
+                    },
+                    "mdb_branch_size": {
+                      "__truncated__": true
+                    },
+                    "mdb_page_malloc": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_sibling": {
+                      "__truncated__": true
+                    },
+                    "mdb_page_free": {
+                      "__truncated__": true
+                    }
+                  }
+                },
+                "mdb_node_add": {
+                  "mdb_dbg_pgno": {
+                    "__ref__": "mdb_dbg_pgno"
+                  },
+                  "mdb_page_new": {
+                    "mdb_page_alloc": {
+                      "__truncated__": true
+                    }
+                  }
+                },
+                "mdb_node_del": {
+                  "__ref__": "mdb_node_del"
+                }
+              },
+              "mdb_page_merge": {
+                "mdb_page_touch": {
+                  "__ref__": "mdb_page_touch"
+                },
+                "mdb_node_add": {
+                  "__ref__": "mdb_node_add"
+                },
+                "mdb_cursor_copy": {
+                  "__ref__": "mdb_cursor_copy"
+                },
+                "mdb_page_search_lowest": {
+                  "__ref__": "mdb_page_search_lowest"
+                },
+                "mdb_node_del": {
+                  "__ref__": "mdb_node_del"
+                },
+                "mdb_update_key": {
+                  "__ref__": "mdb_update_key"
+                },
+                "mdb_page_loose": {
+                  "mdb_mid2l_search": {
+                    "__ref__": "mdb_mid2l_search"
+                  },
+                  "mdb_midl_append": {
+                    "__ref__": "mdb_midl_append"
+                  }
+                },
+                "mdb_cursor_pop": {
+                  "__ref__": "mdb_cursor_pop"
+                },
+                "mdb_rebalance": {
+                  "__ref__": "mdb_rebalance"
+                }
+              }
+            },
+            "mdb_cursor_sibling": {
+              "__ref__": "mdb_cursor_sibling"
+            },
+            "mdb_xcursor_init1": {
+              "__ref__": "mdb_xcursor_init1"
+            },
+            "mdb_cursor_first": {
+              "__ref__": "mdb_cursor_first"
+            }
+          }
+        }
+      }
+    }
+  },
+  "cursor_write": {
+    "mdb_cursor_put": {
+      "_mdb_cursor_put": {
+        "mdb_cursor_last": {
+          "mdb_page_search": {
+            "mdb_cursor_init": {
+              "mdb_xcursor_init0": {},
+              "mdb_page_search": {
+                "__ref__": "mdb_page_search"
+              }
+            },
+            "mdb_node_search": {
+              "mdb_dbg_pgno": {}
+            },
+            "mdb_node_read": {
+              "mdb_page_get": {
+                "mdb_midl_search": {},
+                "mdb_mid2l_search": {}
+              }
+            },
+            "mdb_page_get": {
+              "__ref__": "mdb_page_get"
+            },
+            "mdb_page_touch": {
+              "mdb_page_unspill": {
+                "mdb_midl_search": {
+                  "__ref__": "mdb_midl_search"
+                },
+                "mdb_page_malloc": {},
+                "mdb_page_copy": {},
+                "mdb_page_dirty": {}
+              },
+              "mdb_midl_need": {},
+              "mdb_page_alloc": {
+                "mdb_cursor_init": {
+                  "__ref__": "mdb_cursor_init"
+                },
+                "mdb_find_oldest": {},
+                "mdb_cursor_get": {
+                  "mdb_node_read": {
+                    "__ref__": "mdb_node_read"
+                  },
+                  "mdb_cursor_set": {
+                    "mdb_page_search": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_search": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_sibling": {
+                      "__truncated__": true
+                    },
+                    "mdb_xcursor_init1": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_first": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_read": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_cursor_next": {
+                    "mdb_cursor_first": {
+                      "__truncated__": true
+                    },
+                    "mdb_dbg_pgno": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_sibling": {
+                      "__truncated__": true
+                    },
+                    "mdb_xcursor_init1": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_read": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_cursor_last": {
+                    "__ref__": "mdb_cursor_last"
+                  },
+                  "mdb_cursor_sibling": {
+                    "mdb_cursor_pop": {
+                      "__truncated__": true
+                    },
+                    "mdb_page_get": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_push": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_cursor_prev": {
+                    "mdb_cursor_last": {
+                      "__truncated__": true
+                    },
+                    "mdb_dbg_pgno": {
+                      "__truncated__": true
+                    },
+                    "mdb_cursor_sibling": {
+                      "__truncated__": true
+                    },
+                    "mdb_xcursor_init1": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_read": {
+                      "__truncated__": true
+                    }
+                  },
+                  "mdb_cursor_first": {
+                    "mdb_page_search": {
+                      "__truncated__": true
+                    },
+                    "mdb_xcursor_init1": {
+                      "__truncated__": true
+                    },
+                    "mdb_node_read": {
+                      "__truncated__": true
+                    }
+                  }
+                },
+                "mdb_node_read": {
+                  "__ref__": "mdb_node_read"
+                },
+                "mdb_midl_alloc": {},
+                "mdb_midl_need": {
+                  "__ref__": "mdb_midl_need"
+                },
+                "mdb_midl_xmerge": {},
+                "mdb_page_malloc": {
+                  "__ref__": "mdb_page_malloc"
+                },
+                "mdb_page_dirty": {
+                  "__ref__": "mdb_page_dirty"
+                }
+              },
+              "mdb_mid2l_search": {
+                "__ref__": "mdb_mid2l_search"
+              },
+              "mdb_page_malloc": {
+                "__ref__": "mdb_page_malloc"
+              },
+              "mdb_mid2l_insert": {
+                "mdb_mid2l_search": {
+                  "__ref__": "mdb_mid2l_search"
+                }
+              },
+              "mdb_page_copy": {
+                "__ref__": "mdb_page_copy"
+              }
+            },
+            "mdb_page_search_root": {
+              "mdb_node_search": {
+                "__ref__": "mdb_node_search"
+              },
+              "mdb_page_get": {
+                "__ref__": "mdb_page_get"
+              },
+              "mdb_cursor_push": {},
+              "mdb_page_touch": {
+                "__ref__": "mdb_page_touch"
+              }
+            }
+          },
+          "mdb_xcursor_init1": {},
+          "mdb_node_read": {
+            "__ref__": "mdb_node_read"
+          }
+        },
+        "mdb_cursor_set": {
+          "__ref__": "mdb_cursor_set"
+        },
+        "mdb_page_spill": {
+          "mdb_midl_alloc": {
+            "__ref__": "mdb_midl_alloc"
+          },
+          "mdb_pages_xkeep": {
+            "mdb_page_get": {
+              "__ref__": "mdb_page_get"
+            }
+          },
+          "mdb_midl_search": {
+            "__ref__": "mdb_midl_search"
+          },
+          "mdb_midl_append": {
+            "mdb_midl_grow": {}
+          },
+          "mdb_midl_sort": {},
+          "mdb_page_flush": {
+            "mdb_dpage_free": {
+              "mdb_page_free": {}
+            }
+          }
+        },
+        "mdb_page_new": {
+          "mdb_page_alloc": {
+            "__ref__": "mdb_page_alloc"
+          }
+        },
+        "mdb_cursor_push": {
+          "__ref__": "mdb_cursor_push"
+        },
+        "mdb_cursor_touch": {
+          "mdb_cursor_init": {
+            "__ref__": "mdb_cursor_init"
+          },
+          "mdb_page_search": {
+            "__ref__": "mdb_page_search"
+          },
+          "mdb_page_touch": {
+            "__ref__": "mdb_page_touch"
+          }
+        },
+        "mdb_update_key": {
+          "mdb_dkey": {},
+          "mdb_node_del": {
+            "mdb_dbg_pgno": {
+              "__ref__": "mdb_dbg_pgno"
+            }
+          },
+          "mdb_page_split": {
+            "mdb_page_new": {
+              "__ref__": "mdb_page_new"
+            },
+            "mdb_node_add": {
+              "mdb_dbg_pgno": {
+                "__ref__": "mdb_dbg_pgno"
+              },
+              "mdb_page_new": {
+                "__ref__": "mdb_page_new"
+              }
+            },
+            "mdb_cursor_copy": {},
+            "mdb_leaf_size": {},
+            "mdb_branch_size": {},
+            "mdb_page_malloc": {
+              "__ref__": "mdb_page_malloc"
+            },
+            "mdb_cursor_sibling": {
+              "__ref__": "mdb_cursor_sibling"
+            },
+            "mdb_page_free": {
+              "__ref__": "mdb_page_free"
+            }
+          }
+        },
+        "mdb_page_alloc": {
+          "__ref__": "mdb_page_alloc"
+        },
+        "mdb_node_del": {
+          "__ref__": "mdb_node_del"
+        },
+        "mdb_page_get": {
+          "__ref__": "mdb_page_get"
+        },
+        "mdb_page_unspill": {
+          "__ref__": "mdb_page_unspill"
+        },
+        "mdb_page_malloc": {
+          "__ref__": "mdb_page_malloc"
+        },
+        "mdb_mid2l_insert": {
+          "__ref__": "mdb_mid2l_insert"
+        },
+        "mdb_ovpage_free": {
+          "mdb_midl_search": {
+            "__ref__": "mdb_midl_search"
+          },
+          "mdb_midl_need": {
+            "__ref__": "mdb_midl_need"
+          },
+          "mdb_dpage_free": {
+            "__ref__": "mdb_dpage_free"
+          },
+          "mdb_midl_append_range": {
+            "mdb_midl_grow": {
+              "__ref__": "mdb_midl_grow"
+            }
+          }
+        },
+        "mdb_leaf_size": {
+          "__ref__": "mdb_leaf_size"
+        },
+        "mdb_page_split": {
+          "__ref__": "mdb_page_split"
+        },
+        "mdb_node_add": {
+          "__ref__": "mdb_node_add"
+        },
+        "mdb_xcursor_init1": {
+          "__ref__": "mdb_xcursor_init1"
+        },
+        "mdb_xcursor_init2": {}
+      },
+      "mdb_dval": {
+        "mdb_dkey": {
+          "__ref__": "mdb_dkey"
+        }
+      }
+    }
+  },
+  "cursor_read": {
+    "mdb_cursor_get": {
+      "mdb_node_read": {
+        "mdb_page_get": {
+          "mdb_midl_search": {},
+          "mdb_mid2l_search": {}
+        }
+      },
+      "mdb_cursor_set": {
+        "mdb_page_search": {
+          "mdb_cursor_init": {
+            "mdb_xcursor_init0": {},
+            "mdb_page_search": {
+              "__ref__": "mdb_page_search"
+            }
+          },
+          "mdb_node_search": {
+            "mdb_dbg_pgno": {}
+          },
+          "mdb_node_read": {
+            "__ref__": "mdb_node_read"
+          },
+          "mdb_page_get": {
+            "__ref__": "mdb_page_get"
+          },
+          "mdb_page_touch": {
+            "mdb_page_unspill": {
+              "mdb_midl_search": {
+                "__ref__": "mdb_midl_search"
+              },
+              "mdb_page_malloc": {},
+              "mdb_page_copy": {},
+              "mdb_page_dirty": {}
+            },
+            "mdb_midl_need": {},
+            "mdb_page_alloc": {
+              "mdb_cursor_init": {
+                "__ref__": "mdb_cursor_init"
+              },
+              "mdb_find_oldest": {},
+              "mdb_cursor_get": {
+                "__ref__": "mdb_cursor_get"
+              },
+              "mdb_node_read": {
+                "__ref__": "mdb_node_read"
+              },
+              "mdb_midl_alloc": {},
+              "mdb_midl_need": {
+                "__ref__": "mdb_midl_need"
+              },
+              "mdb_midl_xmerge": {},
+              "mdb_page_malloc": {
+                "__ref__": "mdb_page_malloc"
+              },
+              "mdb_page_dirty": {
+                "__ref__": "mdb_page_dirty"
+              }
+            },
+            "mdb_mid2l_search": {
+              "__ref__": "mdb_mid2l_search"
+            },
+            "mdb_page_malloc": {
+              "__ref__": "mdb_page_malloc"
+            },
+            "mdb_mid2l_insert": {
+              "mdb_mid2l_search": {
+                "__ref__": "mdb_mid2l_search"
+              }
+            },
+            "mdb_page_copy": {
+              "__ref__": "mdb_page_copy"
+            }
+          },
+          "mdb_page_search_root": {
+            "mdb_node_search": {
+              "__ref__": "mdb_node_search"
+            },
+            "mdb_page_get": {
+              "__ref__": "mdb_page_get"
+            },
+            "mdb_cursor_push": {},
+            "mdb_page_touch": {
+              "__ref__": "mdb_page_touch"
+            }
+          }
+        },
+        "mdb_node_search": {
+          "__ref__": "mdb_node_search"
+        },
+        "mdb_cursor_sibling": {
+          "mdb_cursor_pop": {},
+          "mdb_page_get": {
+            "__ref__": "mdb_page_get"
+          },
+          "mdb_cursor_push": {
+            "__ref__": "mdb_cursor_push"
+          }
+        },
+        "mdb_xcursor_init1": {},
+        "mdb_cursor_first": {
+          "mdb_page_search": {
+            "__ref__": "mdb_page_search"
+          },
+          "mdb_xcursor_init1": {
+            "__ref__": "mdb_xcursor_init1"
+          },
+          "mdb_node_read": {
+            "__ref__": "mdb_node_read"
+          }
+        },
+        "mdb_node_read": {
+          "__ref__": "mdb_node_read"
+        }
+      },
+      "mdb_cursor_next": {
+        "mdb_cursor_first": {
+          "__ref__": "mdb_cursor_first"
+        },
+        "mdb_dbg_pgno": {
+          "__ref__": "mdb_dbg_pgno"
+        },
+        "mdb_cursor_sibling": {
+          "__ref__": "mdb_cursor_sibling"
+        },
+        "mdb_xcursor_init1": {
+          "__ref__": "mdb_xcursor_init1"
+        },
+        "mdb_node_read": {
+          "__ref__": "mdb_node_read"
+        }
+      },
+      "mdb_cursor_last": {
+        "mdb_page_search": {
+          "__ref__": "mdb_page_search"
+        },
+        "mdb_xcursor_init1": {
+          "__ref__": "mdb_xcursor_init1"
+        },
+        "mdb_node_read": {
+          "__ref__": "mdb_node_read"
+        }
+      },
+      "mdb_cursor_sibling": {
+        "__ref__": "mdb_cursor_sibling"
+      },
+      "mdb_cursor_prev": {
+        "mdb_cursor_last": {
+          "__ref__": "mdb_cursor_last"
+        },
+        "mdb_dbg_pgno": {
+          "__ref__": "mdb_dbg_pgno"
+        },
+        "mdb_cursor_sibling": {
+          "__ref__": "mdb_cursor_sibling"
+        },
+        "mdb_xcursor_init1": {
+          "__ref__": "mdb_xcursor_init1"
+        },
+        "mdb_node_read": {
+          "__ref__": "mdb_node_read"
+        }
+      },
+      "mdb_cursor_first": {
+        "__ref__": "mdb_cursor_first"
+      }
+    }
+  }
+}

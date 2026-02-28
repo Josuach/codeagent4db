@@ -5,14 +5,11 @@
 .claude
 
 # ---- Generated preprocessing cache (large JSON files, rebuilt by preprocess) ----
-cache/
 
 # ---- Target project source code (not part of codeagent itself) ----
 source/
 
 sqlite_case
-
-lmdb_case
 
 cmd
 

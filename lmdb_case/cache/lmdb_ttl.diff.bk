@@ -1,0 +1,611 @@
+--- a/libraries/liblmdb/lmdb.h
++++ b/libraries/liblmdb/lmdb.h
+@@ -1,4 +1,4 @@
+-/** @file lmdb.h
++/** @file lmdb.h
+  *	@brief Lightning Memory-mapped Database Manager
+  *
+  *	@defgroup lmdb LMDB C API
+@@ -132,6 +132,7 @@ typedef struct MDB_txn {
+ #define MDB_RESERVE	0x20000	/**< Reserve space for data of the given size, don't copy it. Return a pointer to the reserved space. */
+ #define MDB_APPEND	0x40000 /**< Append the given key/data pair to the end of the database. This option allows fast bulk loading when keys are already known to be in the correct order. Loading unsorted keys with this flag will cause a #MDB_KEYEXIST error. */
+ #define MDB_APPENDDUP	0x80000 /**< Duplicate keys may be used in the database. (Or, from another perspective, keys may have multiple data items, stored in sorted order.) By default keys must be unique and may have only a single data item. */
++#define MDB_TTL		0x100000 /**< Store the key-value pair with a time-to-live (TTL) expiration timestamp. The data parameter must point to an MDB_ttl_data structure. */
+ 
+ 	/** @brief Cursor Get operations.
+ 	 *
+@@ -217,6 +218,7 @@ typedef struct MDB_txn {
+ #define MDB_INCOMPATIBLE	(-30799)	/**< Database is incompatible with the requested version or flags. */
+ #define MDB_BAD_RSLOT		(-30800)	/**< Invalid reuse of reader locktable slot */
+ #define MDB_BAD_TXN		(-30801)	/**< Transaction must abort, has a child, or is invalid */
++#define MDB_BAD_TTL		(-30802)	/**< Invalid TTL data or expiration timestamp */
+ 
+ 	/** @brief Statistics for a database in the environment */
+ typedef struct MDB_stat {
+@@ -302,6 +304,23 @@ typedef struct MDB_val {
+ 	void		*mv_data;	/**< pointer to a data item */
+ } MDB_val;
+ 
++	/** @brief TTL data structure for storing key-value pairs with expiration.
++	 *
++	 * This structure is used with #MDB_TTL flag in mdb_put().
++	 * The mv_data field of the MDB_val passed as data parameter should point
++	 * to an instance of this structure.
++	 */
++typedef struct MDB_ttl_data {
++	void		*mt_data;	/**< pointer to the actual data value */
++	size_t		mt_size;	/**< size of the data value */
++	mdb_time_t	mt_expire;	/**< expiration timestamp in seconds since epoch */
++} MDB_ttl_data;
++
++	/** @brief Timestamp type for TTL expiration.
++	 * 64-bit integer representing seconds since Unix epoch.
++	 */
++typedef uint64_t mdb_time_t;
++
+ 	/** @brief A callback function used to compare two keys in a database */
+ typedef int  (MDB_cmp_func)(const MDB_val *a, const MDB_val *b);
+ 	/** @brief A callback function used to compare two data items in a database */
+@@ -330,6 +349,7 @@ typedef struct MDB_txn {
+ 	/** @brief Information about the environment */
+ typedef struct MDB_envinfo {
+ 	void	*me_mapaddr;		/**< Address of map, if fixed */
++	MDB_dbi	me_ttl_dbi;		/**< Internal database handle for TTL metadata */
+ 	mdb_size_t me_mapsize;		/**< Size of the data memory map */
+ 	mdb_size_t me_last_pgno;	/**< ID of the last used page */
+ 	mdb_size_t me_last_txnid;	/**< ID of the last committed transaction */
+@@ -347,6 +367,7 @@ typedef struct MDB_envinfo {
+ #define MDB_env_set_maxdbs	MDB_env_set_maxdbs
+ #define MDB_env_set_mapsize	MDB_env_set_mapsize
+ #define MDB_env_set_maxreaders	MDB_env_set_maxreaders
++#define MDB_env_set_ttl_dbi	MDB_env_set_ttl_dbi
+ 
+ 	/** @brief Create an LMDB environment handle.
+ 	 *
+@@ -463,6 +484,7 @@ int  mdb_env_set_maxdbs(MDB_env *env, MDB_dbi dbs);
+ int  mdb_env_set_mapsize(MDB_env *env, mdb_size_t size);
+ int  mdb_env_set_maxreaders(MDB_env *env, unsigned int readers);
+ int  mdb_env_get_maxreaders(MDB_env *env, unsigned int *readers);
++int  mdb_env_set_ttl_dbi(MDB_env *env, MDB_dbi dbi);
+ 
+ 	/** @brief Return information about the LMDB environment.
+ 	 *
+@@ -571,6 +593,18 @@ int  mdb_get(MDB_txn *txn, MDB_dbi dbi,
+ 		MDB_val *key, MDB_val *data);
+ 
+ 	/** @brief Store items into a database.
++	 *
++	 * When the #MDB_TTL flag is specified, the data parameter must point
++	 * to an #MDB_ttl_data structure containing the actual data and its
++	 * expiration timestamp. The key-value pair will be automatically
++	 * removed after the expiration time has passed.
++	 *
++	 * @param[in] txn A transaction handle returned by #mdb_txn_begin
++	 * @param[in] dbi A database handle returned by #mdb_dbi_open
++	 * @param[in] key The key to store in the database
++	 * @param[in] data The data to store (or #MDB_ttl_data if #MDB_TTL is used)
++	 * @param[in] flags Special options for this operation.
++	 * @return A non-zero error value on failure and 0 on success.
+ 	 */
+ int  mdb_put(MDB_txn *txn, MDB_dbi dbi,
+ 		MDB_val *key, MDB_val *data,
+@@ -620,6 +654,25 @@ int  mdb_del(MDB_txn *txn, MDB_dbi dbi,
+ 		MDB_val *key, MDB_val *data);
+ 
+ 	/** @brief Purge all expired key-value pairs from the database.
++	 *
++	 * This function scans the TTL metadata and removes all key-value pairs
++	 * whose expiration timestamp is less than or equal to the current time.
++	 * The purge operation is performed within the context of the given
++	 * transaction.
++	 *
++	 * @note This function may take significant time if many keys have expired.
++	 * It's recommended to call it periodically or from a background thread.
++	 *
++	 * @param[in] txn A transaction handle returned by #mdb_txn_begin
++	 * @param[in] dbi A database handle returned by #mdb_dbi_open
++	 * @return A non-zero error value on failure and 0 on success.
++	 */
++int  mdb_purge_expired(MDB_txn *txn, MDB_dbi dbi);
++
++	/** @brief Store a key-value pair with TTL expiration.
++	 *
++	 * This is a convenience wrapper around #mdb_put with the #MDB_TTL flag.
++	 * It simplifies the common case of storing data with expiration.
+ 	 *
+ 	 * @param[in] txn A transaction handle returned by #mdb_txn_begin
+ 	 * @param[in] dbi A database handle returned by #mdb_dbi_open
+@@ -627,7 +680,9 @@ int  mdb_del(MDB_txn *txn, MDB_dbi dbi,
+ 	 * @param[in] data The data to store
+ 	 * @param[in] expire Expiration timestamp in seconds since epoch
+ 	 * @return A non-zero error value on failure and 0 on success.
+-	 */
+-int  mdb_purge_expired(MDB_txn *txn, MDB_dbi dbi);
++	 */ 
++int  mdb_put_ttl(MDB_txn *txn, MDB_dbi dbi,
++		MDB_val *key, MDB_val *data,
++		mdb_time_t expire);
+ 
+ #endif /* _LMDB_H_ */
+--- a/libraries/liblmdb/mdb.c
++++ b/libraries/liblmdb/mdb.c
+@@ -1,3 +1,4 @@
++#define _GNU_SOURCE
+ /** @file mdb.c
+  *	@brief Lightning memory-mapped database library
+  *
+@@ -111,6 +112,9 @@
+ #define MDB_PIDLOCK		MDB_NEXT	/**< internal, lock on the pid file */
+ #define MDB_END_TRANS		0x8000	/**< internal, transaction end marker */
+ 
++/** @brief Flag for TTL data in node */
++#define F_TTL			0x20	/**< Node contains TTL expiration timestamp */
++
+ /** @defgroup internal	LMDB Internals
+  *	@{
+  */
+@@ -222,6 +226,9 @@ typedef struct MDB_txninfo {
+ #define MDB_ENV_ACTIVE		0x80000000	/**< Environment is active (valid and open) */
+ #define MDB_ENV_NOMMAP		0x40000000	/**< Don't do mmap, for valgrind etc. */
+ 
++/** @brief Enable TTL feature */
++#define MDB_TTL_ENABLED		0x20000000	/**< Enable TTL support */
++
+ /** @brief Default size of memory map.
+  *
+  *	This is certainly too small for any actual applications. Apps should always set
+@@ -240,6 +247,9 @@ typedef struct MDB_txninfo {
+ /** @brief Number of slots in the reader table */
+ #define DEFAULT_READERS	126
+ 
++/** @brief Name of the internal TTL database */
++#define MDB_TTL_DB_NAME	"__ttl_metadata__"
++
+ /**	@brief The size of a CPU cache line in bytes. Used to align the reader
+  *	table and other data structures.
+  */
+@@ -324,6 +334,9 @@ typedef struct MDB_reader {
+ 	MDB_txn		*mr_txn;	/**< pointer to txn, valid if txnid != 0 */
+ } MDB_reader;
+ 
++/** @brief TTL metadata entry */
++typedef uint64_t mdb_time_t;
++
+ /** @brief The database environment. */
+ typedef struct MDB_env {
+ 	HANDLE		me_fd;		/**< The main data file */
+@@ -333,6 +346,7 @@ typedef struct MDB_env {
+ 	HANDLE		me_mfd;		/**< The lock file, when mmap'd */
+ #endif
+ 	HANDLE		me_lfd;		/**< The lock file */
++	HANDLE		me_ttl_fd;	/**< The TTL database file */
+ 	void		*me_map;	/**< The memory map of the data file */
+ 	size_t		me_mapsize;	/**< The size of the memory map */
+ 	MDB_meta	*me_metas[2];	/**< The two meta pages */
+@@ -365,6 +379,9 @@ typedef struct MDB_env {
+ 	unsigned int	me_maxpg_ent;	/**< max entries per page */
+ 	MDB_dbi		me_numdbs;	/**< number of DBs opened */
+ 	MDB_dbi		me_maxdbs;	/**< size of the DB table */
++	MDB_dbi		me_ttl_dbi;	/**< TTL database handle */
++	int		me_ttl_enabled;/**< TTL feature enabled */
++	txnid_t		me_ttl_oldest;/**< Oldest transaction with TTL data */
+ 	MDB_name	me_dbxs[CORE_DBS]; /**< names of core DBs */
+ 	MDB_db		me_dbflags[CORE_DBS]; /**< flags of core DBs */
+ 	MDB_txn		*me_txn;	/**< current write transaction */
+@@ -440,6 +457,7 @@ typedef struct MDB_cursor {
+ 	MDB_cursor	*mc_next;	/**< next cursor in this transaction */
+ 	MDB_xcursor	*mc_xcursor;	/**< extended cursor for DupSort DBs */
+ 	unsigned int	mc_flags;	/**< @ref mdb_cursor */
++	mdb_time_t	mc_expire;	/**< expiration timestamp for TTL operations */
+ 	MDB_txn		*mc_txn;	/**< transaction handle */
+ 	MDB_dbi		mc_dbi;		/**< database handle */
+ 	MDB_db		*mc_db;		/**< database info */
+@@ -503,6 +521,7 @@ typedef struct MDB_txn {
+ 	MDB_cursor	*mt_cursors;	/**< list of cursors */
+ 	MDB_cursor	**mt_cursors_dbi; /**< array of dbi's cursor lists */
+ 	MDB_meta	*mt_meta;	/**< meta page for this txn */
++	MDB_dbi		mt_ttl_dbi;	/**< TTL database handle for this txn */
+ 	/** #MDB_txn child & parent */
+ 	union {
+ 		MDB_txn	*mt_child;	/**< child transaction (read-write) */
+@@ -4039,6 +4058,7 @@ mdb_env_create(MDB_env **env)
+ 	e->me_maxreaders = DEFAULT_READERS;
+ 	e->me_maxdbs = e->me_numdbs = CORE_DBS;
+ 	e->me_fd = INVALID_HANDLE_VALUE;
++	e->me_ttl_fd = INVALID_HANDLE_VALUE;
+ 	e->me_lfd = INVALID_HANDLE_VALUE;
+ 	e->me_mfd = INVALID_HANDLE_VALUE;
+ #ifdef MDB_USE_POSIX_SEM
+@@ -5080,7 +5100,6 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
+ 	}
+ 	env->me_flags = flags |= MDB_ENV_ACTIVE;
+ 	if (rc)
+-		goto leave;
+ 		goto leave;
+ 
+ 	env->me_path = strdup(path);
+@@ -5109,6 +5128,19 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
+ 		rc = mdb_fopen(env, &fname,
+ 			(flags & MDB_RDONLY) ? MDB_O_RDONLY : MDB_O_RDWR,
+ 			mode, &env->me_fd);
++		if (rc)
++			goto leave;
++		/* Open TTL database file if TTL feature is enabled */
++		if (flags & MDB_TTL_ENABLED) {
++			MDB_name ttl_fname;
++			mdb_fname_init(path, flags | MDB_TTL_SUFFIX, &ttl_fname);
++			rc = mdb_fopen(env, &ttl_fname,
++				(flags & MDB_RDONLY) ? MDB_O_RDONLY : MDB_O_RDWR,
++				mode, &env->me_ttl_fd);
++			mdb_fname_destroy(ttl_fname);
++			if (rc)
++				goto leave;
++		}
+ 	if (rc)
+ 		goto leave;
+ 
+@@ -5264,6 +5296,10 @@ mdb_env_close(MDB_env *env)
+ 	}
+ 
+ 	mdb_env_close0(env, 0);
++	if (env->me_ttl_fd != INVALID_HANDLE_VALUE) {
++		close(env->me_ttl_fd);
++		env->me_ttl_fd = INVALID_HANDLE_VALUE;
++	}
+ 	free(env);
+ }
+ 
+@@ -5873,6 +5909,24 @@ data->mv_data = METADATA(omp);
+ 	return MDB_SUCCESS;
+ }
+ 
++/** Check if a key in the main database has expired.
++ * @param[in] txn The transaction handle.
++ * @param[in] dbi The database handle.
++ * @param[in] key The key to check.
++ * @return 0 if key exists and is not expired, MDB_NOTFOUND if expired or not exist.
++ */
++static int
++mdb_check_expired(MDB_txn *txn, MDB_dbi dbi, MDB_val *key)
++{
++	MDB_val ttl_data;
++	int rc;
++	rc = mdb_get(txn, txn->mt_env->me_ttl_dbi, key, &ttl_data);
++	if (rc == MDB_SUCCESS) {
++		/* Key exists in TTL DB, check expiration */
++		return MDB_NOTFOUND; /* Placeholder: actual expiration check will be added later */
++	}
++	return rc == MDB_NOTFOUND ? 0 : rc;
++}
+ 
+ int
+ mdb_get(MDB_txn *txn, MDB_dbi dbi,
+@@ -5895,7 +5949,12 @@ mdb_get(MDB_txn *txn, MDB_dbi dbi,
+ 		return MDB_BAD_TXN;
+ 
+ 	mdb_cursor_init(&mc, txn, dbi, &mx);
+-	return mdb_cursor_set(&mc, key, data, MDB_SET, &exact);
++	rc = mdb_cursor_set(&mc, key, data, MDB_SET, &exact);
++	if (rc == MDB_SUCCESS && txn->mt_env->me_ttl_dbi != MDB_INVALID_DBI) {
++		/* Check expiration if TTL DB is enabled */
++		rc = mdb_check_expired(txn, dbi, key);
++	}
++	return rc;
+ }
+ 
+ /** Find a sibling for a page.
+@@ -6439,6 +6498,12 @@ mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+ 				MDB_GET_KEY(leaf, key);
+ 				if (data) {
+ 					if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
++						/* For dupdata, we need to check expiration on the main key */
++						if (mc->mc_txn->mt_env->me_ttl_dbi != MDB_INVALID_DBI) {
++							rc = mdb_check_expired(mc->mc_txn, mc->mc_dbi, key);
++							if (rc != 0)
++								break;
++						}
+ 						rc = mdb_cursor_get(&mc->mc_xcursor->mx_cursor, data, NULL, MDB_GET_CURRENT);
+ 					} else {
+ 						rc = mdb_node_read(mc, leaf, data);
+@@ -6468,6 +6533,12 @@ mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+ 		} else {
+ 			rc = mdb_cursor_set(mc, key, data, op,
+ 				op == MDB_SET_RANGE ? NULL : &exact);
++			/* Check expiration after successful set operation */
++			if (rc == MDB_SUCCESS && mc->mc_txn->mt_env->me_ttl_dbi != MDB_INVALID_DBI &&
++				(op == MDB_SET || op == MDB_SET_KEY || op == MDB_SET_RANGE ||
++				 op == MDB_GET_BOTH || op == MDB_GET_BOTH_RANGE)) {
++				rc = mdb_check_expired(mc->mc_txn, mc->mc_dbi, key);
++			}
+ 		}
+ 		break;
+ 	case MDB_GET_MULTIPLE:
+@@ -6537,6 +6608,12 @@ mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+ 		break;
+ 	case MDB_NEXT:
+ 	case MDB_NEXT_DUP:
++		/* For NEXT_DUP, we need to check expiration on the current key */
++		if (op == MDB_NEXT_DUP && mc->mc_txn->mt_env->me_ttl_dbi != MDB_INVALID_DBI &&
++			mc->mc_flags & C_INITIALIZED) {
++			/* Check expiration before moving to next dup */
++			rc = mdb_check_expired(mc->mc_txn, mc->mc_dbi, key);
++		}
+ 	case MDB_NEXT_NODUP:
+ 		rc = mdb_cursor_next(mc, key, data, op);
+ 		break;
+@@ -6566,6 +6643,12 @@ mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+ 			MDB_node *leaf = NODEPTR(mc->mc_pg[mc->mc_top], mc->mc_ki[mc->mc_top]);
+ 			if (!F_ISSET(leaf->mn_flags, F_DUPDATA)) {
+ 				MDB_GET_KEY(leaf, key);
++				/* Check expiration for non-dupdata */
++				if (mc->mc_txn->mt_env->me_ttl_dbi != MDB_INVALID_DBI) {
++					rc = mdb_check_expired(mc->mc_txn, mc->mc_dbi, key);
++					if (rc != 0)
++						break;
++				}
+ 				rc = mdb_node_read(mc, leaf, data);
+ 				break;
+ 			}
+@@ -7390,7 +7473,7 @@ skip:
+ static int
+ mdb_node_add(MDB_cursor *mc, indx_t indx,
+     MDB_val *key, MDB_val *data, pgno_t pgno, unsigned int flags)
+ {
+-	unsigned int	 i;
++	unsigned int	 i, ttl_flags = 0;
+ 	size_t		 node_size = NODESIZE;
+ 	ssize_t		 room;
+ 	indx_t		 ofs;
+@@ -7398,6 +7481,7 @@ mdb_node_add(MDB_cursor *mc, indx_t indx,
+ 	MDB_page	*mp = mc->mc_pg[mc->mc_top];
+ 	MDB_page	*ofp = NULL;		/* overflow page */
+ 	void		*ndata;
++	MDB_val		ttl_data;
+ 	DKBUF;
+ 
+ 	mdb_cassert(mc, MP_UPPER(mp) >= MP_LOWER(mp));
+@@ -7430,6 +7514,17 @@ mdb_node_add(MDB_cursor *mc, indx_t indx,
+ 	if (IS_LEAF(mp)) {
+ 		mdb_cassert(mc, key && data);
+ 		if (F_ISSET(flags, F_BIGDATA)) {
++			/* Check if TTL data is attached */
++			if (data->mv_size == sizeof(pgno_t) + sizeof(mdb_time_t)) {
++				/* Data includes TTL timestamp */
++				ttl_flags = F_TTL;
++				/* Adjust node size for TTL data */
++				node_size += sizeof(mdb_time_t);
++				/* Create a temporary data value without TTL for node size calculation */
++				ttl_data.mv_size = sizeof(pgno_t);
++				ttl_data.mv_data = data->mv_data;
++				data = &ttl_data;
++			}
+ 			/* Data already on overflow page. */
+ 			node_size += sizeof(pgno_t);
+ 		} else if (node_size + data->mv_size > mc->mc_txn->mt_env->me_nodemax) {
+@@ -7448,6 +7543,13 @@ mdb_node_add(MDB_cursor *mc, indx_t indx,
+ 			goto update;
+ 		} else {
+ 			node_size += data->mv_size;
++			/* Check if TTL data is attached */
++			if (data->mv_size > sizeof(mdb_time_t) && 
++				*(mdb_time_t *)((char *)data->mv_data + data->mv_size - sizeof(mdb_time_t)) != 0) {
++				/* Data includes TTL timestamp */
++				ttl_flags = F_TTL;
++				node_size += sizeof(mdb_time_t);
++			}
+ 		}
+ 	}
+ 	node_size = EVEN(node_size);
+@@ -7472,7 +7574,7 @@ mdb_node_add(MDB_cursor *mc, indx_t indx,
+ 	/* Write the node data. */
+ 	node = NODEPTR(mp, indx);
+ 	node->mn_ksize = (key == NULL) ? 0 : key->mv_size;
+-	node->mn_flags = flags;
++	node->mn_flags = flags | ttl_flags;
+ 	if (IS_LEAF(mp))
+ 		SETDSZ(node,data->mv_size);
+ 	else
+@@ -7488,15 +7590,31 @@ mdb_node_add(MDB_cursor *mc, indx_t indx,
+ 		if (ofp == NULL) {
+ 			if (F_ISSET(flags, F_BIGDATA))
+ 				memcpy(ndata, data->mv_data, sizeof(pgno_t));
+-			else if (F_ISSET(flags, MDB_RESERVE))
++			else if (F_ISSET(flags, MDB_RESERVE)) {
+ 				data->mv_data = ndata;
+-			else
++				if (ttl_flags & F_TTL) {
++					/* Reserve space for TTL */
++					data->mv_size -= sizeof(mdb_time_t);
++				}
++			}
++			else {
+ 				memcpy(ndata, data->mv_data, data->mv_size);
++				if (ttl_flags & F_TTL) {
++					/* Copy TTL timestamp after regular data */
++					memcpy((char *)ndata + data->mv_size, 
++						(char *)data->mv_data + data->mv_size, sizeof(mdb_time_t));
++				}
++			}
+ 		} else {
+ 			memcpy(ndata, &ofp->mp_pgno, sizeof(pgno_t));
+ 			ndata = METADATA(ofp);
+-			if (F_ISSET(flags, MDB_RESERVE))
++			if (F_ISSET(flags, MDB_RESERVE)) {
+ 				data->mv_data = ndata;
++				if (ttl_flags & F_TTL) {
++					/* Reserve space for TTL */
++					data->mv_size -= sizeof(mdb_time_t);
++				}
++			}
+ 			else
+ 				memcpy(ndata, data->mv_data, data->mv_size);
+ 		}
+@@ -7543,6 +7661,8 @@ mdb_node_add(MDB_cursor *mc, indx_t indx,
+ 	if (IS_LEAF(mp)) {
+ 		if (F_ISSET(node->mn_flags, F_BIGDATA))
+ 			sz += sizeof(pgno_t);
++		else if (F_ISSET(node->mn_flags, F_TTL))
++			sz += sizeof(mdb_time_t);
+ 		else
+ 			sz += NODEDSZ(node);
+ 	}
+@@ -8645,6 +8765,7 @@ mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+ 	if (rc)
+ 		mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
+ 	return rc;
++
+ }
+ 
+ int
+@@ -8670,7 +8791,7 @@ mdb_del(MDB_txn *txn, MDB_dbi dbi,
+ 		txn, dbi, key ? key->mv_size:0, DKEY(key), data ? data->mv_size:0,
+ 		data ? mdb_dval(txn, dbi, data, dbuf):""));
+ 	return mdb_del0(txn, dbi, key, data, 0);
+-}
++}
+ 
+ static int
+ mdb_del0(MDB_txn *txn, MDB_dbi dbi,
+@@ -8912,6 +9033,8 @@ mdb_page_split(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+ 						if (IS_LEAF(mp)) {
+ 							if (F_ISSET(node->mn_flags, F_BIGDATA))
+ 								psize += sizeof(pgno_t);
++							else if (F_ISSET(node->mn_flags, F_TTL))
++								psize += sizeof(mdb_time_t);
+ 							else
+ 								psize += NODEDSZ(node);
+ 						}
+@@ -9010,6 +9133,8 @@ mdb_page_split(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+ 				if (IS_LEAF(mp)) {
+ 					xdata.mv_data = NODEDATA(node);
+ 					xdata.mv_size = NODEDSZ(node);
++					if (F_ISSET(node->mn_flags, F_TTL))
++						xdata.mv_size += sizeof(mdb_time_t);
+ 					rdata = &xdata;
+ 				} else
+ 					pgno = NODEPGNO(node);
+@@ -9145,6 +9270,40 @@ mdb_put(MDB_txn *txn, MDB_dbi dbi,
+ 	return rc;
+ }
+ 
++int
++mdb_put_ttl(MDB_txn *txn, MDB_dbi dbi,
++    MDB_val *key, MDB_val *data, mdb_time_t expire)
++{
++	MDB_cursor mc;
++	MDB_xcursor mx;
++	int rc;
++	DKBUF;
++	DDBUF;
++
++	if (!key || !data || !TXN_DBI_EXIST(txn, dbi, DB_USRVALID))
++		return EINVAL;
++
++	if (expire <= 0)
++		return MDB_BAD_TTL;
++
++	if (txn->mt_flags & (MDB_TXN_RDONLY|MDB_TXN_BLOCKED))
++		return (txn->mt_flags & MDB_TXN_RDONLY) ? EACCES : MDB_BAD_TXN;
++
++	MDB_TRACE(("%p, %u, %"Z"u[%s], %"Z"u%s, %ld",
++		txn, dbi, key ? key->mv_size:0, DKEY(key), data->mv_size, mdb_dval(txn, dbi, data, dbuf), (long)expire));
++	mdb_cursor_init(&mc, txn, dbi, &mx);
++	mc.mc_next = txn->mt_cursors[dbi];
++	txn->mt_cursors[dbi] = &mc;
++	/* Store the expiration timestamp in cursor context for _mdb_cursor_put */
++	mc.mc_expire = expire;
++	rc = _mdb_cursor_put(&mc, key, data, MDB_TTL);
++	txn->mt_cursors[dbi] = mc.mc_next;
++	return rc;
++}
++
++#ifndef MDB_WBUF
++#define MDB_WBUF	(1024*1024)
++#endif
+ 
+ /**	@brief Return statistics for a database.
+  */
+@@ -9980,6 +10139,12 @@ int mdb_dbi_open(MDB_txn *txn, const char *name, unsigned int flags, MDB_dbi *db
+ 		if (!unused) {
+ 			txn->mt_numdbs++;
+ 		}
++		/* Initialize TTL database if this is the first non-core DBI opened */
++		if (slot == CORE_DBS && txn->mt_env->me_ttl_enabled && txn->mt_ttl_dbi == 0) {
++			rc = mdb_ttl_dbi_init(txn, &txn->mt_ttl_dbi);
++			if (rc == MDB_SUCCESS && txn->mt_env->me_ttl_dbi == 0)
++				txn->mt_env->me_ttl_dbi = txn->mt_ttl_dbi;
++		}
+ 		MDB_TRACE(("%p, %s, %u = %u", txn, name, flags, slot));
+ 	}
+ 
+@@ -9997,6 +10162,32 @@ mdb_stat(MDB_txn *txn, MDB_dbi dbi, MDB_stat *arg)
+ /* ... (lines 9997–10449 omitted) ... */
+ 
++/** Initialize the TTL database handle for a transaction.
++ * Opens the internal TTL database if not already open.
++ *
++ * @param[in] txn The transaction handle.
++ * @param[out] dbi Pointer to store the TTL database handle.
++ * @return 0 on success, non-zero on failure.
++ */
++static int
++mdb_ttl_dbi_init(MDB_txn *txn, MDB_dbi *dbi)
++{
++	int rc;
++	MDB_env *env = txn->mt_env;
++	
++	if (env->me_ttl_dbi != 0) {
++		*dbi = env->me_ttl_dbi;
++		return MDB_SUCCESS;
++	}
++	
++	rc = mdb_dbi_open(txn, MDB_TTL_DB_NAME, MDB_CREATE | MDB_INTEGERKEY | MDB_DUPSORT, dbi);
++	if (rc == MDB_SUCCESS) {
++		env->me_ttl_dbi = *dbi;
++		txn->mt_ttl_dbi = *dbi;
++	}
++	
++	return rc;
++}
++
+ int ESECT
+ mdb_stat(MDB_txn *txn, MDB_dbi dbi, MDB_stat *arg)
+ {
+@@ -10445,4 +10636,97 @@ mdb_env_copyfd2(MDB_env *env, HANDLE fd)
+ 	}
+ 	return rc;
+ }
++
++/** Purge a batch of expired keys from the main database.
++ * This is an internal helper for mdb_purge_expired.
++ * @param[in] txn Transaction handle.
++ * @param[in] dbi Database handle.
++ * @param[in] expired_keys Array of keys to delete.
++ * @param[in] count Number of keys in the array.
++ * @return 0 on success, non-zero on error.
++ */
++static int
++mdb_purge_batch(MDB_txn *txn, MDB_dbi dbi, MDB_val *expired_keys, size_t count)
++{
++	int rc = 0;
++	size_t i;
++	for (i = 0; i < count; i++) {
++		rc = mdb_del0(txn, dbi, &expired_keys[i], NULL, MDB_NODUPDATA);
++		if (rc) {
++			if (rc == MDB_NOTFOUND) {
++				/* Key might have been deleted already, continue */
++				rc = 0;
++				continue;
++			}
++			break;
++		}
++	}
++	return rc;
++}
++
++/** Scan and remove expired key-value pairs from a database.
++ * This function iterates over the TTL database, identifies keys whose
++ * expiration timestamp is less than or equal to the current time,
++ * and removes them from both the main database and the TTL database.
++ * The operation is performed in batches to manage memory and transaction size.
++ * @param[

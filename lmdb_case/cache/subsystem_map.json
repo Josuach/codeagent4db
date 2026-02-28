@@ -1,0 +1,23 @@
+{
+  "(root)": {
+    "name": "Database Core System",
+    "description": "Main entry point, configuration parsing, initialization, and top-level database management functions",
+    "keywords": [
+      "main",
+      "config",
+      "init",
+      "startup",
+      "shutdown",
+      "bootstrap",
+      "core",
+      "system",
+      "entry",
+      "主程序",
+      "配置",
+      "初始化",
+      "启动",
+      "核心系统",
+      "入口点"
+    ]
+  }
+}

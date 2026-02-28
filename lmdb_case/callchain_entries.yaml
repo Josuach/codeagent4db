@@ -1,0 +1,13 @@
+# Entry functions for call chain analysis.
+# LMDB 0.9.35 key entry points.
+entries:
+  - name: "write_path"
+    entry: "mdb_put"           # 键值对写入路径
+  - name: "read_path"
+    entry: "mdb_get"           # 键值对读取路径
+  - name: "delete_path"
+    entry: "mdb_del"           # 键值对删除路径
+  - name: "cursor_write"
+    entry: "mdb_cursor_put"    # 游标写入路径
+  - name: "cursor_read"
+    entry: "mdb_cursor_get"    # 游标读取路径

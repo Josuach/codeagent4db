@@ -1,0 +1,350 @@
+{
+  "mdb.c": {
+    "subsystems": [
+      "catalog",
+      "debug",
+      "executor",
+      "index",
+      "lock",
+      "storage",
+      "transaction",
+      "wal"
+    ],
+    "function_count": 161,
+    "function_names": [
+      "mdb_sem_wait",
+      "mdb_version",
+      "mdb_strerror",
+      "mdb_assert_fail",
+      "mdb_dbg_pgno",
+      "mdb_dkey",
+      "mdb_dval",
+      "mdb_leafnode_type",
+      "mdb_page_list",
+      "mdb_cursor_chk",
+      "mdb_audit",
+      "mdb_cmp",
+      "mdb_dcmp",
+      "mdb_page_malloc",
+      "mdb_page_free",
+      "mdb_dpage_free",
+      "mdb_dlist_free",
+      "mdb_page_loose",
+      "mdb_pages_xkeep",
+      "mdb_page_spill",
+      "mdb_find_oldest",
+      "mdb_page_dirty",
+      "mdb_page_alloc",
+      "mdb_page_copy",
+      "mdb_page_unspill",
+      "mdb_page_touch",
+      "mdb_env_sync",
+      "mdb_cursor_shadow",
+      "mdb_cursors_close",
+      "mdb_reader_pid",
+      "mdb_txn_renew0",
+      "mdb_txn_renew",
+      "mdb_txn_begin",
+      "mdb_txn_env",
+      "mdb_txn_id",
+      "mdb_dbis_update",
+      "mdb_txn_end",
+      "mdb_txn_reset",
+      "_mdb_txn_abort",
+      "mdb_txn_abort",
+      "mdb_freelist_save",
+      "mdb_page_flush",
+      "_mdb_txn_commit",
+      "mdb_txn_commit",
+      "mdb_env_read_header",
+      "mdb_env_init_meta0",
+      "mdb_env_init_meta",
+      "mdb_env_write_meta",
+      "mdb_env_pick_meta",
+      "mdb_env_create",
+      "mdb_env_map",
+      "mdb_env_set_mapsize",
+      "mdb_env_set_maxdbs",
+      "mdb_env_set_maxreaders",
+      "mdb_env_get_maxreaders",
+      "mdb_fsize",
+      "mdb_fname_init",
+      "mdb_fopen",
+      "mdb_env_open2",
+      "mdb_env_reader_dest",
+      "mdb_tls_callback",
+      "mdb_env_share_locks",
+      "mdb_env_excl_lock",
+      "mdb_hash_val",
+      "mdb_pack85",
+      "mdb_hash_enc",
+      "mdb_env_setup_locks",
+      "mdb_env_open",
+      "mdb_env_close0",
+      "mdb_env_close",
+      "mdb_cmp_long",
+      "mdb_cmp_int",
+      "mdb_cmp_cint",
+      "mdb_cmp_memn",
+      "mdb_cmp_memnr",
+      "mdb_node_search",
+      "mdb_cursor_adjust",
+      "mdb_cursor_pop",
+      "mdb_cursor_push",
+      "mdb_page_get",
+      "mdb_page_search_root",
+      "mdb_page_search_lowest",
+      "mdb_page_search",
+      "mdb_ovpage_free",
+      "mdb_node_read",
+      "mdb_get",
+      "mdb_cursor_sibling",
+      "mdb_cursor_next",
+      "mdb_cursor_prev",
+      "mdb_cursor_set",
+      "mdb_cursor_first",
+      "mdb_cursor_last",
+      "mdb_cursor_get",
+      "mdb_cursor_touch",
+      "_mdb_cursor_put",
+      "mdb_cursor_put",
+      "_mdb_cursor_del",
+      "mdb_cursor_del",
+      "mdb_page_new",
+      "mdb_leaf_size",
+      "mdb_branch_size",
+      "mdb_node_add",
+      "mdb_node_del",
+      "mdb_node_shrink",
+      "mdb_xcursor_init0",
+      "mdb_xcursor_init1",
+      "mdb_xcursor_init2",
+      "mdb_cursor_init",
+      "mdb_cursor_open",
+      "mdb_cursor_renew",
+      "mdb_cursor_count",
+      "mdb_cursor_close",
+      "mdb_cursor_txn",
+      "mdb_cursor_dbi",
+      "mdb_update_key",
+      "mdb_node_move",
+      "mdb_page_merge",
+      "mdb_cursor_copy",
+      "mdb_rebalance",
+      "mdb_cursor_del0",
+      "mdb_del",
+      "mdb_del0",
+      "mdb_page_split",
+      "mdb_put",
+      "mdb_env_copythr",
+      "mdb_env_cthr_toggle",
+      "mdb_env_cwalk",
+      "mdb_env_copyfd1",
+      "mdb_env_copyfd0",
+      "mdb_env_copyfd2",
+      "mdb_env_copyfd",
+      "mdb_env_copy2",
+      "mdb_env_copy",
+      "mdb_env_set_flags",
+      "mdb_env_get_flags",
+      "mdb_env_set_userctx",
+      "mdb_env_get_userctx",
+      "mdb_env_set_assert",
+      "mdb_env_get_path",
+      "mdb_env_get_fd",
+      "mdb_stat0",
+      "mdb_env_stat",
+      "mdb_env_info",
+      "mdb_default_cmp",
+      "mdb_dbi_open",
+      "mdb_stat",
+      "mdb_dbi_close",
+      "mdb_dbi_flags",
+      "mdb_drop0",
+      "mdb_drop",
+      "mdb_set_compare",
+      "mdb_set_dupsort",
+      "mdb_set_relfunc",
+      "mdb_set_relctx",
+      "mdb_env_get_maxkeysize",
+      "mdb_reader_list",
+      "mdb_pid_insert",
+      "mdb_reader_check",
+      "mdb_reader_check0",
+      "mdb_mutex_failed",
+      "utf8_to_utf16"
+    ],
+    "description": "等待信号量，用于线程同步; 返回LMDB库的版本信息; 将错误码转换为可读的错误描述字符串; 断言失败处理函数，用于调试和错误报告; 调试函数，返回页面的页号 (161 functions total)"
+  },
+  "mdb_copy.c": {
+    "subsystems": [
+      "test",
+      "transaction"
+    ],
+    "function_count": 2,
+    "function_names": [
+      "sighandle",
+      "main"
+    ],
+    "description": "信号处理函数，用于处理进程中断信号; LMDB 测试程序的主函数，执行各种数据库操作测试"
+  },
+  "mdb_dump.c": {
+    "subsystems": [
+      "test",
+      "tool"
+    ],
+    "function_count": 7,
+    "function_names": [
+      "dumpsig",
+      "hex",
+      "text",
+      "byte",
+      "dumpit",
+      "usage",
+      "main"
+    ],
+    "description": "设置全局信号标志，用于中断数据库转储过程; 将单字节数据转换为十六进制字符并输出; 以可打印字符或转义序列形式输出键值数据; 以原始十六进制字节形式输出键值数据; 执行数据库转储核心逻辑，输出 BDB 兼容格式 (7 functions total)"
+  },
+  "mdb_load.c": {
+    "subsystems": [
+      "test",
+      "tool"
+    ],
+    "function_count": 7,
+    "function_names": [
+      "readhdr",
+      "badend",
+      "unhex",
+      "readline",
+      "usage",
+      "greater",
+      "main"
+    ],
+    "description": "解析数据库转储文件的头部信息，验证版本和格式; 报告输入意外结束的错误，用于数据加载过程; 从输入流读取一行数据，支持可打印和十六进制格式解析; 比较函数，始终返回 1（用于特定加载顺序）; LMDB 测试程序的主函数，执行各种数据库操作测试"
+  },
+  "mdb_stat.c": {
+    "subsystems": [
+      "test",
+      "tool"
+    ],
+    "function_count": 3,
+    "function_names": [
+      "prstat",
+      "usage",
+      "main"
+    ],
+    "description": "打印数据库统计信息，包括树深度和页面分布; LMDB 测试程序的主函数，执行各种数据库操作测试"
+  },
+  "midl.c": {
+    "subsystems": [
+      "storage"
+    ],
+    "function_count": 15,
+    "function_names": [
+      "mdb_midl_search",
+      "mdb_midl_insert",
+      "mdb_midl_alloc",
+      "mdb_midl_free",
+      "mdb_midl_shrink",
+      "mdb_midl_grow",
+      "mdb_midl_need",
+      "mdb_midl_append",
+      "mdb_midl_append_list",
+      "mdb_midl_append_range",
+      "mdb_midl_xmerge",
+      "mdb_midl_sort",
+      "mdb_mid2l_search",
+      "mdb_mid2l_insert",
+      "mdb_mid2l_append"
+    ],
+    "description": "在 ID 列表中进行二分查找，返回匹配位置或插入点; 向 ID 列表插入一个 ID，保持列表有序; 分配一个 ID 列表，并初始化其头部; 释放 ID 列表占用的内存; 收缩 ID 列表容量以节省内存 (15 functions total)"
+  },
+  "mplay.c": {
+    "subsystems": [
+      "test",
+      "tool",
+      "transaction"
+    ],
+    "function_count": 17,
+    "function_names": [
+      "unhex",
+      "inhex",
+      "addenv",
+      "findenv",
+      "delenv",
+      "addtxn",
+      "findtxn",
+      "deltxn",
+      "addcrs",
+      "findcrs",
+      "delcrs",
+      "child",
+      "addpid",
+      "findpid",
+      "delpid",
+      "reaper",
+      "main"
+    ],
+    "description": "将十六进制字符串转换为二进制数据; 添加环境对到全局数组，映射文本环境到真实环境; 根据文本环境指针查找对应的真实环境; 从全局数组中删除环境对; 在事务管理表中添加新事务记录 (17 functions total)"
+  },
+  "mtest.c": {
+    "subsystems": [
+      "test"
+    ],
+    "function_count": 1,
+    "function_names": [
+      "main"
+    ],
+    "description": "LMDB 测试程序的主函数，执行各种数据库操作测试"
+  },
+  "mtest2.c": {
+    "subsystems": [
+      "test"
+    ],
+    "function_count": 1,
+    "function_names": [
+      "main"
+    ],
+    "description": "LMDB 测试程序的主函数，执行各种数据库操作测试"
+  },
+  "mtest3.c": {
+    "subsystems": [
+      "test"
+    ],
+    "function_count": 1,
+    "function_names": [
+      "main"
+    ],
+    "description": "LMDB 测试程序的主函数，执行各种数据库操作测试"
+  },
+  "mtest4.c": {
+    "subsystems": [
+      "test"
+    ],
+    "function_count": 1,
+    "function_names": [
+      "main"
+    ],
+    "description": "LMDB 测试程序的主函数，执行各种数据库操作测试"
+  },
+  "mtest5.c": {
+    "subsystems": [
+      "test"
+    ],
+    "function_count": 1,
+    "function_names": [
+      "main"
+    ],
+    "description": "LMDB 测试程序的主函数，执行各种数据库操作测试"
+  },
+  "mtest6.c": {
+    "subsystems": [
+      "test"
+    ],
+    "function_count": 1,
+    "function_names": [
+      "main"
+    ],
+    "description": "LMDB 测试程序的主函数，执行各种数据库操作测试"
+  }
+}
