@@ -43,6 +43,8 @@ SYSTEM_PROMPT_IMPL_FILE = """\
 - diff 内容必须语法正确，可以直接用 patch -p1 应用
 - 代码片段中每行前面的数字是该行在文件中的真实行号，请用这些行号生成正确的 @@ 标记
 - 如果该文件无需修改，输出空字符串
+- 代码片段中的 /* ... (lines N–M omitted) ... */ 是省略标记，不要将其输出到 diff 中
+- 函数实现必须完整，不得使用 TODO、占位符或省略号截断
 """
 
 SYSTEM_PROMPT_INTEGRATE = """\
@@ -84,6 +86,8 @@ SYSTEM_PROMPT_REFINE = """\
 - 只输出修正后的完整 unified diff，不输出任何解释文字
 - diff 必须可以直接用 patch -p1 应用
 - 保留原有正确的修改，只补充缺失或修正错误的部分
+- 代码片段中的 /* ... (lines N–M omitted) ... */ 是省略标记，不要将其输出到 diff 中
+- 函数实现必须完整，不得使用 TODO、占位符或省略号截断
 """
 
 
@@ -566,7 +570,7 @@ def implement_feature(
             model=model,
             system=SYSTEM_PROMPT_IMPL_FILE,
             user=user_msg,
-            max_tokens=8192,
+            max_tokens=16384,
         ).strip()
         diff = _strip_markdown_codeblock(raw)
 
@@ -827,7 +831,7 @@ def review_and_refine_diff(
             model=model,
             system=SYSTEM_PROMPT_REFINE,
             user=refine_user,
-            max_tokens=8192,
+            max_tokens=16384,
         ).strip()
         refined = _strip_markdown_codeblock(raw)
 

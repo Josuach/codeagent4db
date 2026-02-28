@@ -51,6 +51,14 @@ _DEFAULT_MODELS: dict[str, dict[str, str]] = {
     },
 }
 
+# Hard cap on max_tokens per provider.
+# None means "no client-side cap" (rely on API to enforce).
+_MAX_OUTPUT_TOKENS: dict[str, Optional[int]] = {
+    "deepseek": 8192,
+    "anthropic": None,
+    "openai_compatible": None,
+}
+
 # Base URLs for known providers
 _BASE_URLS: dict[str, str] = {
     "deepseek": "https://api.deepseek.com",
@@ -64,6 +72,7 @@ class LLMConfig:
     provider: str = "deepseek"       # "deepseek" | "anthropic" | "openai_compatible"
     api_key: str = ""
     base_url: Optional[str] = None   # Override the default base URL
+    max_output_tokens: Optional[int] = None  # Override per-provider token cap (None = use default)
 
 
 class LLMClient:
@@ -78,6 +87,12 @@ class LLMClient:
         self.provider = config.provider
         self._config = config
 
+        # Resolve effective token cap: explicit config > provider default > None
+        if config.max_output_tokens is not None:
+            self._max_tokens_cap: Optional[int] = config.max_output_tokens
+        else:
+            self._max_tokens_cap = _MAX_OUTPUT_TOKENS.get(config.provider)
+
         if config.provider == "anthropic":
             from anthropic import Anthropic
             self._backend = Anthropic(api_key=config.api_key)
@@ -90,6 +105,12 @@ class LLMClient:
                     f"provider='{config.provider}' requires base_url to be set."
                 )
             self._backend = OpenAI(api_key=config.api_key, base_url=base_url)
+
+    def _cap_tokens(self, max_tokens: int) -> int:
+        """Clamp max_tokens to the provider's hard limit (if any)."""
+        if self._max_tokens_cap is not None:
+            return min(max_tokens, self._max_tokens_cap)
+        return max_tokens
 
     # ------------------------------------------------------------------
     # Public API
@@ -191,7 +212,7 @@ class LLMClient:
     def _chat_openai_compatible(self, model: str, system: str, user: str, max_tokens: int) -> str:
         response = self._backend.chat.completions.create(
             model=model,
-            max_tokens=max_tokens,
+            max_tokens=self._cap_tokens(max_tokens),
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
@@ -239,7 +260,7 @@ class LLMClient:
         """OpenAI-compatible structured output via json_object response_format."""
         response = self._backend.chat.completions.create(
             model=model,
-            max_tokens=max_tokens,
+            max_tokens=self._cap_tokens(max_tokens),
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system},
