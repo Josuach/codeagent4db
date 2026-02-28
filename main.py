@@ -393,6 +393,9 @@ def cmd_generate(args, client: LLMClient):
             client=client,
             model=args.model,
             max_rounds=review_rounds,
+            function_index=func_index,
+            struct_index=struct_index,
+            project_root=project_root,
         )
 
     # --- Optional compile check ---
@@ -431,12 +434,11 @@ def cmd_review(args, client):
     """
     Standalone diff review + refine.
 
-    Loads an existing plan JSON and diff file, runs the LLM review+refine
-    loop, and writes the (possibly improved) diff to --output.
-
-    This avoids re-running the full generate pipeline when the diff only
-    needs post-generation review / completion.
+    Loads an existing plan JSON + diff file + optional cache (function/struct
+    index) and runs the LLM review+refine loop, writing the refined diff.
     """
+    from preprocess.struct_indexer import load_struct_index
+
     # Load plan
     plan_path = args.plan
     if not os.path.exists(plan_path):
@@ -453,12 +455,38 @@ def cmd_review(args, client):
     with open(diff_path, "r", encoding="utf-8") as f:
         diff = f.read()
 
-    output_path = args.output or diff_path
-    review_rounds = args.review_rounds
+    # Load optional cache (function index, struct index)
+    func_index: dict = {}
+    struct_index: dict = {}
+    project_root: str = getattr(args, "project", "") or ""
+    cache_dir: str = getattr(args, "cache_dir", "") or ""
 
-    print(f"[review] Plan : {plan_path}")
-    print(f"[review] Diff : {diff_path}  ({len(diff.splitlines())} lines)")
-    print(f"[review] Rounds: {review_rounds}")
+    if cache_dir:
+        paths = _cache_paths(cache_dir)
+
+        fi_path = paths["function_index"]
+        if os.path.exists(fi_path):
+            with open(fi_path, "r", encoding="utf-8") as f:
+                func_index = json.load(f)
+            print(f"[review] Loaded function index: {len(func_index)} functions")
+        else:
+            print(f"[review] function_index.json not found in {cache_dir} — skipping snippet extraction")
+
+        si_path = paths["struct_index"]
+        if os.path.exists(si_path):
+            struct_index = load_struct_index(si_path)
+            print(f"[review] Loaded struct index: {len(struct_index)} structs")
+
+    if project_root:
+        project_root = os.path.abspath(project_root)
+
+    output_path = args.output or diff_path
+
+    print(f"[review] Plan  : {plan_path}")
+    print(f"[review] Diff  : {diff_path}  ({len(diff.splitlines())} lines)")
+    print(f"[review] Rounds: {args.review_rounds}")
+    if project_root:
+        print(f"[review] Project: {project_root}")
     print(format_plan_for_display(plan))
 
     refined = review_and_refine_diff(
@@ -466,7 +494,10 @@ def cmd_review(args, client):
         plan=plan,
         client=client,
         model=args.model,
-        max_rounds=review_rounds,
+        max_rounds=args.review_rounds,
+        function_index=func_index or None,
+        struct_index=struct_index or None,
+        project_root=project_root,
     )
 
     with open(output_path, "w", encoding="utf-8") as f:
@@ -580,6 +611,12 @@ def main():
                      help="Number of LLM review+refine cycles (default: 2)")
     rev.add_argument("--model", default="",
                      help="Model for review (default: provider's main default)")
+    rev.add_argument("--cache-dir", default=None,
+                     help="Cache directory containing function_index.json and struct_index.json "
+                          "(enables code snippet extraction during refine)")
+    rev.add_argument("--project", default=None,
+                     help="Path to the C project root (required for snippet extraction; "
+                          "must be used together with --cache-dir)")
 
     args = parser.parse_args()
 

@@ -162,6 +162,12 @@ USER_PROMPT_REFINE_TEMPLATE = """\
 ## 尚未实现的步骤
 {unimplemented_steps}
 
+## 相关结构体 / 联合体 / 枚举定义
+{structs_content}
+
+## 相关代码片段（带行号）
+{code_context}
+
 请输出补全修正后的完整 unified diff。
 """
 
@@ -695,21 +701,29 @@ def review_and_refine_diff(
     client: LLMClient,
     model: str = "",
     max_rounds: int = 1,
+    function_index: Optional[dict] = None,
+    struct_index: Optional[dict] = None,
+    project_root: str = "",
 ) -> str:
     """
     Post-generation LLM review loop.
 
     After implement_feature() produces a diff, this function:
-      1. Asks the LLM to review the diff against the plan steps.
-      2. If the review finds issues, asks the LLM to produce a corrected diff.
+      1. Asks the LLM to review the diff against the plan steps (structured JSON).
+      2. If issues are found, collects relevant code snippets for the problematic
+         steps (when function_index + project_root are provided) and asks the LLM
+         to produce a corrected diff.
       3. Repeats up to max_rounds times.
 
     Args:
-        diff:       The combined unified diff from Call 2 (+ Call 3 if any).
-        plan:       The implementation plan dict.
-        client:     LLMClient instance.
-        model:      Model to use (empty = client default).
-        max_rounds: Maximum number of review+refine cycles (0 = skip review).
+        diff:           The combined unified diff from Call 2 (+ Call 3 if any).
+        plan:           The implementation plan dict.
+        client:         LLMClient instance.
+        model:          Model to use (empty = client default).
+        max_rounds:     Maximum number of review+refine cycles (0 = skip review).
+        function_index: Preprocessed function index (for snippet extraction in refine).
+        struct_index:   Preprocessed struct index (for struct context in refine).
+        project_root:   Absolute path to C project root (for snippet extraction).
 
     Returns:
         The final (possibly refined) diff string.
@@ -774,7 +788,7 @@ def review_and_refine_diff(
             break
 
         # --- Refine ---
-        print(f"[review] Refining diff ...", flush=True)
+        print("[review] Refining diff ...", flush=True)
 
         issues_text = "\n".join(f"- {iss}" for iss in issues) or "(none listed)"
         unimpl_text = "\n".join(
@@ -783,12 +797,30 @@ def review_and_refine_diff(
             if 1 <= i <= len(steps)
         ) or "(none)"
 
+        # Build code context for problematic steps
+        code_context = "(no function index provided)"
+        if function_index and project_root:
+            # Load snippets for unimplemented steps; fall back to all steps if none flagged
+            target_indices = [i for i in unimplemented if 1 <= i <= len(steps)] \
+                             or list(range(1, len(steps) + 1))
+            snippet_parts = []
+            for si in target_indices:
+                step = steps[si - 1]
+                snippet = _load_step_snippets(step, project_root, function_index)
+                if snippet and "(no functions" not in snippet and "(function_index" not in snippet:
+                    snippet_parts.append(f"=== Step {si}: {step.get('description', '')} ===\n{snippet}")
+            code_context = "\n\n".join(snippet_parts) or "(no relevant snippets found)"
+
+        structs_content = _build_structs_block(plan, struct_index) or "(none)"
+
         refine_user = USER_PROMPT_REFINE_TEMPLATE.format(
             step_total=len(steps),
             steps_list=steps_list,
             diff=diff_for_prompt,
             issues=issues_text,
             unimplemented_steps=unimpl_text,
+            structs_content=structs_content,
+            code_context=code_context,
         )
 
         raw = client.chat(
