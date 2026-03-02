@@ -4,6 +4,7 @@ Unified LLM client wrapper.
 Supports multiple providers through a single interface:
   - deepseek  (default): uses OpenAI-compatible API at api.deepseek.com
   - anthropic           : uses Anthropic's native SDK
+  - lm_studio           : LM Studio local server (default http://localhost:1234/v1)
   - openai_compatible   : any OpenAI-compatible endpoint (set base_url)
 
 Usage:
@@ -31,6 +32,8 @@ Usage:
 """
 
 import json
+import time
+import traceback
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -49,6 +52,10 @@ _DEFAULT_MODELS: dict[str, dict[str, str]] = {
         "main": "gpt-4o",
         "summarizer": "gpt-4o-mini",
     },
+    "lm_studio": {
+        "main": "local-model",
+        "summarizer": "local-model",
+    },
 }
 
 # Hard cap on max_tokens per provider.
@@ -57,12 +64,14 @@ _MAX_OUTPUT_TOKENS: dict[str, Optional[int]] = {
     "deepseek": 8192,
     "anthropic": None,
     "openai_compatible": None,
+    "lm_studio": None,
 }
 
 # Base URLs for known providers
 _BASE_URLS: dict[str, str] = {
     "deepseek": "https://api.deepseek.com",
     "openai_compatible": "",  # must be supplied by caller
+    "lm_studio": "http://localhost:1234/v1",
 }
 
 
@@ -97,14 +106,16 @@ class LLMClient:
             from anthropic import Anthropic
             self._backend = Anthropic(api_key=config.api_key)
         else:
-            # DeepSeek and any other OpenAI-compatible provider
+            # DeepSeek, LM Studio, and any other OpenAI-compatible provider
             from openai import OpenAI
             base_url = config.base_url or _BASE_URLS.get(config.provider, "")
             if not base_url:
                 raise ValueError(
                     f"provider='{config.provider}' requires base_url to be set."
                 )
-            self._backend = OpenAI(api_key=config.api_key, base_url=base_url)
+            # LM Studio doesn't require a real API key; use a placeholder if empty
+            api_key = config.api_key or "lm-studio"
+            self._backend = OpenAI(api_key=api_key, base_url=base_url)
 
     def _cap_tokens(self, max_tokens: int) -> int:
         """Clamp max_tokens to the provider's hard limit (if any)."""
@@ -201,24 +212,40 @@ class LLMClient:
     # ------------------------------------------------------------------
 
     def _chat_anthropic(self, model: str, system: str, user: str, max_tokens: int) -> str:
-        response = self._backend.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": user}],
-        )
-        return response.content[0].text
+        attempt = 0
+        while True:
+            try:
+                response = self._backend.messages.create(
+                    model=model,
+                    max_tokens=max_tokens,
+                    system=system,
+                    messages=[{"role": "user", "content": user}],
+                )
+                return response.content[0].text
+            except Exception as e:
+                attempt += 1
+                print(f"[LLMClient] anthropic chat error (attempt {attempt}): {e}")
+                traceback.print_exc()
+                time.sleep(3)
 
     def _chat_openai_compatible(self, model: str, system: str, user: str, max_tokens: int) -> str:
-        response = self._backend.chat.completions.create(
-            model=model,
-            max_tokens=self._cap_tokens(max_tokens),
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-        )
-        return response.choices[0].message.content
+        attempt = 0
+        while True:
+            try:
+                response = self._backend.chat.completions.create(
+                    model=model,
+                    max_tokens=self._cap_tokens(max_tokens),
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                attempt += 1
+                print(f"[LLMClient] openai-compatible chat error (attempt {attempt}): {e}")
+                traceback.print_exc()
+                time.sleep(3)
 
     def _chat_structured_anthropic(
         self,
@@ -235,18 +262,26 @@ class LLMClient:
             "description": f"Structured output: {schema_name}",
             "input_schema": json_schema,
         }
-        response = self._backend.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            system=system,
-            tools=[tool_def],
-            tool_choice={"type": "tool", "name": schema_name},
-            messages=[{"role": "user", "content": user}],
-        )
-        for block in response.content:
-            if block.type == "tool_use":
-                return block.input  # already a Python dict
-        return {}
+        attempt = 0
+        while True:
+            try:
+                response = self._backend.messages.create(
+                    model=model,
+                    max_tokens=max_tokens,
+                    system=system,
+                    tools=[tool_def],
+                    tool_choice={"type": "tool", "name": schema_name},
+                    messages=[{"role": "user", "content": user}],
+                )
+                for block in response.content:
+                    if block.type == "tool_use":
+                        return block.input  # already a Python dict
+                return {}
+            except Exception as e:
+                attempt += 1
+                print(f"[LLMClient] anthropic structured chat error (attempt {attempt}): {e}")
+                traceback.print_exc()
+                time.sleep(3)
 
     def _chat_structured_openai_compatible(
         self,
@@ -258,20 +293,28 @@ class LLMClient:
         json_schema: dict,
     ) -> dict:
         """OpenAI-compatible structured output via json_object response_format."""
-        response = self._backend.chat.completions.create(
-            model=model,
-            max_tokens=self._cap_tokens(max_tokens),
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-        )
-        raw = response.choices[0].message.content
-        try:
-            return json.loads(raw)
-        except (json.JSONDecodeError, TypeError):
-            return {}
+        attempt = 0
+        while True:
+            try:
+                response = self._backend.chat.completions.create(
+                    model=model,
+                    max_tokens=self._cap_tokens(max_tokens),
+                    response_format={"type": "json_object"},
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                )
+                raw = response.choices[0].message.content
+                try:
+                    return json.loads(raw)
+                except (json.JSONDecodeError, TypeError):
+                    return {}
+            except Exception as e:
+                attempt += 1
+                print(f"[LLMClient] openai-compatible structured chat error (attempt {attempt}): {e}")
+                traceback.print_exc()
+                time.sleep(3)
 
 
 # ------------------------------------------------------------------
@@ -285,6 +328,7 @@ def create_client_from_env(provider: str = "deepseek", base_url: Optional[str] =
     Environment variables checked (in order):
       - DEEPSEEK_API_KEY   (when provider == "deepseek")
       - ANTHROPIC_API_KEY  (when provider == "anthropic")
+      - LM_STUDIO_API_KEY  (when provider == "lm_studio", optional)
       - LLM_API_KEY        (fallback for any provider)
 
     Args:
@@ -303,6 +347,7 @@ def create_client_from_env(provider: str = "deepseek", base_url: Optional[str] =
     env_map = {
         "deepseek": "DEEPSEEK_API_KEY",
         "anthropic": "ANTHROPIC_API_KEY",
+        "lm_studio": "LM_STUDIO_API_KEY",
     }
     primary_env = env_map.get(provider, "LLM_API_KEY")
 
@@ -311,7 +356,8 @@ def create_client_from_env(provider: str = "deepseek", base_url: Optional[str] =
         or os.environ.get("LLM_API_KEY")
     )
 
-    if not api_key:
+    # lm_studio API key is optional (depends on LM Studio server configuration)
+    if not api_key and provider != "lm_studio":
         sys.exit(
             f"Error: API key not found. "
             f"Set the {primary_env} (or LLM_API_KEY) environment variable."

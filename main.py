@@ -521,7 +521,7 @@ def main():
     parser.add_argument(
         "--provider",
         default=os.environ.get("LLM_PROVIDER", "deepseek"),
-        choices=["deepseek", "anthropic", "openai_compatible"],
+        choices=["deepseek", "anthropic", "lm_studio", "openai_compatible"],
         help="LLM provider to use (default: deepseek; env: LLM_PROVIDER)",
     )
     parser.add_argument(

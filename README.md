@@ -34,7 +34,7 @@ entries:
 
 **第二步：** 编辑 [`project_overview.md`](project_overview.md)，描述项目架构、技术栈和核心数据结构。内容越详细，规划阶段 LLM 的理解越准确。
 
-**第三步：** 设置 API Key（二选一）：
+**第三步：** 设置 API Key：
 
 ```bash
 # 方式 A：Anthropic
@@ -43,7 +43,12 @@ export ANTHROPIC_API_KEY=sk-ant-...
 # 方式 B：DeepSeek（OpenAI 兼容接口）
 export DEEPSEEK_API_KEY=sk-...
 
-# 方式 C：.env 文件（推荐）
+# 方式 C：LM Studio（本地，通常不需要 Key）
+# 无需设置环境变量，默认连接 http://localhost:1234/v1
+# 若在 LM Studio 设置中启用了 API Key 验证：
+export LM_STUDIO_API_KEY=your-key
+
+# 方式 D：.env 文件（推荐）
 echo "DEEPSEEK_API_KEY=sk-..." > .env
 export $(cat .env | xargs)
 ```
@@ -84,6 +89,41 @@ python main.py generate \
     --output my_changes.diff \      # 不指定则输出到 cache-dir 内
     --model claude-sonnet-4-6
 ```
+
+#### 使用 LM Studio（本地模型）
+
+在 LM Studio 中加载模型并启动本地服务器（默认端口 1234），然后：
+
+```bash
+# 预处理（使用本地模型）
+python main.py preprocess \
+    --project /path/to/db \
+    --provider lm_studio \
+    --summarizer-model "your-loaded-model-name"
+
+# 生成
+python main.py generate \
+    --project /path/to/db \
+    --provider lm_studio \
+    --feature "特性描述" \
+    --model "your-loaded-model-name"
+
+# 自定义端口或地址（LM Studio 不在本机时）
+python main.py generate \
+    --project /path/to/db \
+    --provider lm_studio \
+    --base-url http://192.168.1.100:1234/v1 \
+    --feature "特性描述"
+
+# 若 LM Studio 启用了 API Key 验证
+python main.py generate \
+    --project /path/to/db \
+    --provider lm_studio \
+    --api-key your-key \
+    --feature "特性描述"
+```
+
+> **提示**：`--model` 对应 LM Studio 当前加载的模型标识符，可在 LM Studio 界面的 "Developer" 标签页中查看（通常为模型文件夹名称，如 `lmstudio-community/qwen2.5-coder-32b-instruct`）。若省略 `--model`，默认值为 `local-model`，LM Studio 会自动映射到当前加载的模型。
 
 #### `--cache-dir` 缓存目录
 
